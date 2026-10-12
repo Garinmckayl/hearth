@@ -1,0 +1,30 @@
+{
+  "name": "hearth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.mjs",
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "playwright test",
+    "build:android": "node scripts/build-android.mjs",
+    "firetv": "node scripts/firetv-device.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.0.0",
+    "@aws-sdk/client-polly": "^3.1149.0",
+    "@aws-sdk/client-transcribe-streaming": "^3.1149.0",
+    "@smithy/node-http-handler": "^4.0.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "esbuild": "^0.25.0"
+  }
+}

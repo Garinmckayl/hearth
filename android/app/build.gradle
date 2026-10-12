@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.hearth.tv'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.hearth.tv'
+        minSdk 25
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        def backend = providers.gradleProperty('hearthBackendUrl').getOrElse('')
+        if (backend && !(backend ==~ /https:\/\/[A-Za-z0-9.\-:]+/)) {
+            throw new GradleException('hearthBackendUrl must be an HTTPS origin without a path')
+        }
+        buildConfigField 'String', 'BACKEND_URL', '"' + backend + '"'
+    }
+    buildFeatures { buildConfig true }
+    sourceSets {
+        main { assets.srcDirs = ['../../dist'] }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
