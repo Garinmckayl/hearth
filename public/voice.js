@@ -54,6 +54,11 @@ export class RealtimeVoice {
     if (!['USER', 'ASSISTANT'].includes(role)) return;
     this.context = { ...this.context, recentConversation: [...(this.context.recentConversation || []), { role: role.toLowerCase(), text: text.slice(0, 1000) }].slice(-8) };
   }
+  submitText(text) {
+    if (this.closed || !this.ready || this.socket?.readyState !== 1 || typeof text !== 'string' || !text.trim() || text.length > 500) return false;
+    this.socket.send(JSON.stringify({ type: 'text', text }));
+    return true;
+  }
   event(event) {
     if (this.closed) return;
     this.onEvent(event);
@@ -64,7 +69,7 @@ export class RealtimeVoice {
     if (event.acceptedUtterance) { this.rememberTurn('USER', event.acceptedUtterance.text); this.clearAudio(); this.onActivity('listening'); this.onText('USER', event.acceptedUtterance.text, true); }
     if (event.hearthAction && this.handleActions) {
       const action = event.hearthAction;
-      Promise.resolve().then(() => this.closed ? { ok: false } : this.onAction(action)).then(result => this.actionResult({ toolUseId: action.toolUseId, ok: result?.ok === true })).catch(() => this.actionResult({ toolUseId: action.toolUseId, ok: false }));
+      Promise.resolve().then(() => this.closed ? { ok: false } : this.onAction(action)).then(result => this.actionResult({ toolUseId: action.toolUseId, ok: result?.ok === true, ...(typeof result?.summary === 'string' ? { summary: result.summary.slice(0, 1000) } : {}) })).catch(() => this.actionResult({ toolUseId: action.toolUseId, ok: false }));
     }
     if (event.error) { this.onError(event.error); this.stop(); return; }
     if (event.ready) { this.ready = true; this.reconnectAttempts = 0; this.onStatus(this.muted ? 'Microphone paused.' : this.mode === 'ambient' ? 'Hands-free is on. No repeated wake word.' : 'Listening. Take your time.'); this.onActivity(this.muted ? 'paused' : 'ready'); }

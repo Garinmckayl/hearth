@@ -1,5 +1,175 @@
 import { test, expect } from '@playwright/test';
 
+test('native TV Back closes a panel before exiting the home', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.nativeExits = 0;
+    window.HearthNative = { backendUrl: () => '', exit: () => window.nativeExits++ };
+  });
+  await page.goto('/?tv=1');
+  await page.locator('#talk-button').click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#panel')).not.toBeVisible();
+  expect(await page.evaluate(() => window.nativeExits)).toBe(0);
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => window.nativeExits)).toBe(1);
+});
+
+test('Pip has a signature rig and readable listening, thinking and speaking reactions', async ({ page, context }) => {
+  await context.grantPermissions(['microphone']);
+  await page.route('**/api/config', route => route.fulfill({ json: { voice: 'nova-sonic' } }));
+  let voiceSocket;
+  await page.routeWebSocket('**/api/voice', socket => {
+    voiceSocket = socket;
+    socket.onMessage(message => { if (typeof message === 'string' && JSON.parse(message).type === 'start') socket.send(JSON.stringify({ ready: true })); });
+  });
+  await page.goto('/'); await expect(page.locator('#voice-hint')).toContainText('natural');
+  await expect(page.locator('.pip-leaf-pin')).toBeVisible(); await expect(page.locator('.pip-tuft')).toBeVisible();
+  await page.locator('#talk-button').click(); await page.locator('#cozy-voice').click(); await page.locator('#start-live-home').click();
+  await expect.poll(() => Boolean(voiceSocket)).toBe(true);
+  await expect(page.getByRole('button', { name: 'End conversation', exact: true })).toBeVisible();
+  voiceSocket.send(JSON.stringify({ contentStart: { contentName: 'listen', role: 'USER' } }));
+  await expect(page.locator('#pip')).toHaveAttribute('data-presence', 'listening');
+  await expect(page.locator('#pip')).toHaveAttribute('data-expression', 'curious');
+  voiceSocket.send(JSON.stringify({ contentStart: { contentName: 'answer', role: 'ASSISTANT', additionalModelFields: '{"generationStage":"FINAL"}' } }));
+  await expect(page.locator('#pip')).toHaveAttribute('data-presence', 'thinking');
+  voiceSocket.send(JSON.stringify({ audioOutput: { content: Buffer.alloc(48000, 48).toString('base64') } }));
+  await expect(page.locator('#pip')).toHaveAttribute('data-presence', 'speaking');
+  await expect(page.locator('#pip .mouth-open')).toHaveCSS('opacity', '1');
+  await expect(page.locator('#pip')).toHaveAttribute('data-expression', 'smile');
+  await page.getByRole('button', { name: 'End conversation', exact: true }).click();
+});
+
+test('quick vibe switch is keyboard accessible, saved, and Pip has a larger independent rig', async ({ page }) => {
+  await page.goto('/');
+  const toggle = page.getByRole('button', { name: 'Switch to crisp and cold', exact: true });
+  await toggle.focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cold');
+  await expect(page.locator('#panel')).not.toBeVisible();
+  await expect(page.locator('#vibe-switch')).toHaveAccessibleName('Switch to warm and cozy');
+  await page.reload();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cold');
+  await expect(page.locator('#pip-scale')).toHaveAttribute('transform', 'translate(0 -20) scale(1.22)');
+  await expect(page.locator('.flames path').first()).toHaveCSS('fill', 'rgb(255, 172, 56)');
+  await page.locator('#vibe-switch').click();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cozy');
+});
+
+test('cozy and cold change the theme, window, scarf and saved home', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/'); await page.locator('#room-button').click(); await page.locator('#atmosphere-button').click();
+  await page.locator('[data-vibe="cold"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-vibe', 'cold');
+  await expect(page.locator('.world')).toHaveAttribute('data-window', 'open');
+  await expect(page.locator('#pip-scarf')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.winter-window')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.snowfall')).toHaveCSS('animation-name', 'none');
+  await page.locator('#room-button').click(); await page.locator('#atmosphere-button').click();
+  await page.locator('[data-window="closed"]').click(); await page.reload();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cold');
+  await expect(page.locator('.world')).toHaveAttribute('data-window', 'closed');
+  await expect(page.locator('.window-frost')).toHaveCSS('opacity', '0.8');
+  await page.locator('#room-button').click(); await page.locator('#atmosphere-button').click();
+  await page.locator('[data-vibe="cozy"]').click();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cozy');
+  await expect(page.locator('.world')).toHaveAttribute('data-atmosphere', 'evening');
+  await expect(page.locator('#pip-scarf')).toHaveCSS('opacity', '0');
+});
+
+test('voice tools change vibes and window state while keeping conversation active', async ({ page, context }) => {
+  await context.grantPermissions(['microphone']);
+  await page.route('**/api/config', route => route.fulfill({ json: { voice: 'nova-sonic' } }));
+  let voiceSocket; let acknowledged = false;
+  await page.routeWebSocket('**/api/voice', socket => {
+    voiceSocket = socket;
+    socket.onMessage(message => {
+      if (typeof message !== 'string') return;
+      const input = JSON.parse(message);
+      if (input.type === 'start') { socket.send(JSON.stringify({ ready: true })); socket.send(JSON.stringify({ hearthAction: { action: 'cold', toolUseId: 'cold-test' } })); }
+      if (input.type === 'action-result') acknowledged = input.ok;
+    });
+  });
+  await page.goto('/'); await expect(page.locator('#voice-hint')).toContainText('natural');
+  await page.locator('#talk-button').click(); await page.locator('#cozy-voice').click(); await page.locator('#start-live-home').click();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cold');
+  await expect.poll(() => acknowledged).toBe(true);
+  voiceSocket.send(JSON.stringify({ hearthAction: { action: 'close-window', toolUseId: 'window-test' } }));
+  await expect(page.locator('.world')).toHaveAttribute('data-window', 'closed');
+  await expect(page.getByRole('button', { name: 'End conversation', exact: true })).toBeVisible();
+  await page.locator('#vibe-switch').click();
+  await expect(page.locator('.world')).toHaveAttribute('data-vibe', 'cozy');
+  await expect(page.getByRole('button', { name: 'End conversation', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'End conversation', exact: true }).click();
+});
+
+test('refresh with saved sound enabled never speaks automatically or uses a robotic fallback', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.roboticSpeechCalls = 0;
+    speechSynthesis.speak = () => window.roboticSpeechCalls++;
+    localStorage.setItem('hearth.home.v1', JSON.stringify({ version: 1, sound: true }));
+  });
+  let speechRequests = 0;
+  await page.route('**/api/config', async route => { await new Promise(resolve => setTimeout(resolve, 350)); await route.fulfill({ json: { dialogue: 'story', voice: 'unavailable' } }); });
+  await page.route('**/api/speak', route => { speechRequests++; return route.fulfill({ status: 503 }); });
+  await page.goto('/'); await page.locator('#pip').waitFor(); await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.roboticSpeechCalls)).toBe(0);
+  expect(speechRequests).toBe(0);
+  await page.getByRole('button', { name: 'I’d like that', exact: true }).click();
+  await expect(page.locator('#toast')).toContainText('no robotic fallback');
+  expect(await page.evaluate(() => window.roboticSpeechCalls)).toBe(0);
+  await page.reload(); await page.locator('#pip').waitFor();
+  expect(speechRequests).toBe(0);
+});
+
+test('new activities have real choices, editable notes and visible expressions', async ({ page }) => {
+  await page.goto('/'); await page.locator('#room-button').click();
+  await page.locator('[data-activity="riddle"]').click();
+  await expect(page.locator('#companion-activity')).toContainText('keys');
+  await page.getByRole('button', { name: 'A piano', exact: true }).click();
+  await expect(page.locator('#companion-activity')).toContainText('Exactly!');
+  await expect(page.locator('#pip')).toHaveAttribute('data-action', 'bow');
+  await expect(page.locator('#pip')).toHaveAttribute('data-expression', 'proud');
+  await page.getByRole('button', { name: 'Another riddle' }).click();
+  await expect(page.locator('#companion-activity')).toContainText('wetter');
+  await page.locator('#room-button').click(); await page.locator('[data-activity="word-game"]').click();
+  await page.getByRole('button', { name: 'A scarf for the teapot' }).click();
+  await expect(page.locator('#companion-activity')).toContainText('draughty');
+  await page.locator('#room-button').click(); await page.locator('[data-activity="tiny-story"]').click();
+  await page.getByRole('button', { name: 'An umbrella of stars' }).click();
+  await expect(page.locator('#pip')).toHaveAttribute('data-action', 'stargaze');
+  await expect(page.locator('.world')).toHaveAttribute('data-atmosphere', 'evening');
+  await page.locator('#room-button').click(); await page.locator('[data-activity="connection-note"]').click();
+  await page.getByRole('textbox', { name: 'Your message draft' }).fill('Hello, I would love a catch-up.');
+  await expect(page.getByRole('textbox', { name: 'Your message draft' })).toHaveValue('Hello, I would love a catch-up.');
+  await page.getByRole('button', { name: 'Close this activity' }).click();
+  await expect(page.locator('#companion-activity')).toHaveCount(0);
+});
+
+test('Sonic opens an activity through paired TV tools and receives its summary and remote choices', async ({ page, context }) => {
+  await context.grantPermissions(['microphone']);
+  await context.route('**/api/config', route => route.fulfill({ json: { voice: 'nova-sonic', attention: 'jev' } }));
+  let summary; let selected;
+  await context.routeWebSocket('**/api/voice', socket => socket.onMessage(message => {
+    if (typeof message !== 'string') return;
+    const input = JSON.parse(message);
+    if (input.type === 'start') { socket.send(JSON.stringify({ ready: true })); socket.send(JSON.stringify({ hearthAction: { action: 'riddle', expression: 'mischievous', toolUseId: 'new-riddle' } })); }
+    if (input.type === 'action-result') summary = input.summary;
+    if (input.type === 'text') selected = input.text;
+  }));
+  await page.goto('/'); await expect(page.locator('#voice-hint')).toContainText('Hands-free');
+  await page.locator('#talk-button').click(); await page.locator('#cozy-voice').click();
+  await page.getByRole('button', { name: 'Use your phone as microphone', exact: true }).click();
+  const link = page.getByRole('link', { name: 'Open phone microphone' }); await expect(link).toBeVisible();
+  const phone = await context.newPage(); await phone.goto(await link.getAttribute('href'));
+  await expect(phone.locator('#pair-status')).toContainText('Connected to your television');
+  await page.locator('#pair-home').click(); await phone.locator('#phone-start').click();
+  await expect(page.locator('#companion-activity')).toContainText('keys');
+  await expect.poll(() => summary).toContain('Answer: A piano');
+  await page.getByRole('button', { name: 'A piano', exact: true }).click();
+  await expect.poll(() => selected).toContain('My guess for the riddle is A piano');
+  await expect(phone.locator('#phone-mute')).toBeVisible();
+  await page.getByRole('button', { name: 'End phone conversation' }).click();
+});
+
 test('voice renewal keeps the microphone, recent conversation and pause state without ending pairing', async ({ page, context }) => {
   await context.grantPermissions(['microphone']);
   await context.route('**/api/config', route => route.fulfill({ json: { dialogue: 'story', voice: 'nova-sonic', attention: 'jev' } }));
@@ -394,7 +564,7 @@ test('live voice is an explicit microphone action and can be ended', async ({ pa
   await expect(page.locator('#live-status')).toBeVisible();
   await page.clock.install();
   await page.clock.runFor(26000);
-  await expect(page.locator('#mood-label')).toHaveText('feeling glad you’re here');
+  await expect(page.locator('#mood-label')).toHaveText('finding her words');
   await page.getByRole('button', { name: 'End conversation', exact: true }).click();
   await expect(page.locator('#live-status')).toHaveCount(0);
   await expect(page.locator('.world')).not.toHaveClass(/voice-active/);

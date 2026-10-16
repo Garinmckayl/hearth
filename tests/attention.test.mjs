@@ -73,6 +73,10 @@ test('ambient side conversation never enters Sonic, while accepted turns do', as
     socket.send(JSON.stringify({ type: 'pause', paused: true })); await new Promise(resolve => setTimeout(resolve, 10));
     onUtterance('Please dance.'); await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(decisions.length, 3);
+    socket.send(JSON.stringify({ type: 'text', text: 'My guess for the riddle is a piano.' }));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    assert.deepEqual(acceptedTexts, ['Please dance.', 'My guess for the riddle is a piano.']);
+    assert.equal(decisions.length, 3);
     socket.close(); await once(socket, 'close'); await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(stopped, true);
   } finally { socket.terminate(); await new Promise(resolve => server.close(resolve)); }

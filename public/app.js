@@ -2,7 +2,9 @@ import { STORAGE_KEY, freshState, loadState, remember, forget, hasMemory, replyF
 import { RealtimeVoice } from './voice.js';
 import { PhonePairing } from './pairing.js';
 import { invitationFor } from './invitations.js';
-import { CharacterActions, validateWorldAction, WORLD_ACTIONS } from './actions.js';
+import { CharacterActions, validateWorldAction, WORLD_ACTIONS, ACTIVITY_ACTIONS } from './actions.js';
+import { CompanionActivities } from './activities.js';
+import { applyAmbience } from './ambience.js';
 import { FiresideTune } from './music.js';
 
 const element = id => document.getElementById(id);
@@ -37,7 +39,10 @@ let breathTimer;
 let storyAudio;
 let speechRequest;
 let keepVoiceOnClose = false;
+let speechAllowed = false;
+let configReady;
 const backendUrl = window.HearthNative?.backendUrl() || '';
+const companionActivities = new CompanionActivities({ mount: document.querySelector('.world'), onGesture: action => performWorldAction({ action }), onTurn: text => liveVoice ? liveVoice.submitText(text) : phonePairing?.userText(text) || false });
 const panel = element('panel');
 const escapeHtml = text => String(text).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
@@ -64,6 +69,11 @@ function refresh() {
   element('sound-button').setAttribute('aria-label', state.sound ? 'Turn spoken replies off' : 'Turn spoken replies on');
   document.body.classList.toggle('large-text', state.largeText);
   document.querySelector('.world').dataset.atmosphere = state.atmosphere;
+  document.querySelector('.world').dataset.vibe = state.vibe;
+  document.querySelector('.world').dataset.window = state.window;
+  document.body.dataset.vibe = state.vibe;
+  element('vibe-switch').setAttribute('aria-label', state.vibe === 'cozy' ? 'Switch to crisp and cold' : 'Switch to warm and cozy');
+  element('vibe-switch').querySelector('span').textContent = state.vibe === 'cozy' ? 'Cold vibe' : 'Cozy vibe';
   element('sunflowers')?.setAttribute('visibility', state.garden === 'sunflowers' ? 'visible' : 'hidden');
   element('moonflowers')?.setAttribute('visibility', state.garden === 'moonflowers' ? 'visible' : 'hidden');
   element('story-lantern')?.setAttribute('visibility', state.storyPath.length === 2 ? 'visible' : 'hidden');
@@ -72,11 +82,14 @@ function refresh() {
 function setMood(mood = 'content') {
   pip?.setAttribute('class', mood === 'thoughtful' ? 'pip-idle pip-thoughtful' : mood === 'attentive' ? 'pip-idle pip-attentive' : 'pip-idle');
   element('mood-label').textContent = `feeling ${mood === 'attentive' ? 'glad you’re here' : mood}`;
+  if (pip && !characterActions?.active) pip.dataset.expression = mood === 'thoughtful' ? 'tender' : mood === 'attentive' ? 'curious' : 'smile';
   if (element('watering-can')) element('watering-can').style.opacity = mood === 'content' ? '1' : '0';
 }
 
 async function speak(text) {
-  if (!state.sound) return;
+  if (!state.sound || !speechAllowed || document.hidden || liveVoice || phonePairing?.voice) return;
+  await configReady;
+  if (!state.sound || document.hidden || liveVoice || phonePairing?.voice) return;
   if (sonicAvailable) {
     stopSpeech();
     const controller = new AbortController(); speechRequest = controller;
@@ -93,18 +106,7 @@ async function speak(text) {
     } catch (error) { if (error.name !== 'AbortError') toast('Cozy voice is taking a moment. Captions are always here.'); }
     return;
   }
-  if (window.HearthNative) { window.HearthNative.speak(text); return; }
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  pip?.classList.remove('speaking');
-  const utterance = new SpeechSynthesisUtterance(text);
-  const voices = speechSynthesis.getVoices();
-  utterance.voice = voices.find(voice => /samantha|aria|jenny|female|zira|susan|karen|moira/i.test(voice.name)) || voices.find(voice => voice.lang === 'en-US') || null;
-  utterance.rate = 0.86;
-  utterance.pitch = 1.08;
-  utterance.onstart = () => pip?.classList.add('speaking');
-  utterance.onend = utterance.onerror = () => pip?.classList.remove('speaking');
-  speechSynthesis.speak(utterance);
+  toast('Cozy voice is unavailable. Captions are here; no robotic fallback.');
 }
 
 function stopSpeech() {
@@ -126,6 +128,7 @@ function stopLiveVoice() {
 }
 
 function say(text, choices = [], mood = 'attentive') {
+  companionActivities.stop();
   characterActions?.stop(); firesideTune.stop();
   clearInvitation();
   stopLiveVoice();
@@ -180,6 +183,7 @@ function quiet() {
 }
 
 function openPanel(kicker, html) {
+  companionActivities.stop();
   characterActions?.stop(); firesideTune.stop();
   clearInvitation();
   stopLiveVoice();
@@ -240,6 +244,13 @@ function room() {
   element('solo-game').onclick = () => startGame(1);
   const danceTile = document.createElement('button'); danceTile.id = 'dance-with-pip'; danceTile.className = 'activity-tile'; danceTile.innerHTML = '<strong>Pip’s fireside shuffle</strong><span>A little dance. A little silliness.</span>'; danceTile.onclick = danceWithPip; element('solo-game').parentElement.append(danceTile);
   const surpriseTile = document.createElement('button'); surpriseTile.id = 'pip-surprise'; surpriseTile.className = 'activity-tile'; surpriseTile.innerHTML = '<strong>Surprise me, Pip</strong><span>She has a few ideas of her own.</span>'; surpriseTile.onclick = surpriseWithPip; element('solo-game').parentElement.append(surpriseTile);
+  for (const [action, title, description] of [['riddle', 'A little fireside riddle', 'A guess, a giggle, and no score.'], ['word-game', 'The unlikely picnic', 'Make something wonderfully ridiculous.'], ['tiny-story', 'Make a tiny story', 'A little adventure with two possibilities.'], ['connection-note', 'Send a little hello', 'Draft a note. You decide how to share.'], ['juggle', 'Pip’s woodland juggling', 'Three treasures. Questionable technique.'], ['tea', 'An imaginary cup of tea', 'A quiet, unhurried moment.']]) {
+    const tile = document.createElement('button'); tile.className = 'activity-tile'; tile.dataset.activity = action;
+    const heading = document.createElement('strong'); heading.textContent = title;
+    const detail = document.createElement('span'); detail.textContent = description; tile.append(heading, detail);
+    tile.onclick = () => { closePanel(); performWorldAction({ action }); };
+    element('solo-game').parentElement.append(tile);
+  }
   element('shared-game').onclick = () => startGame(2);
   element('story-button').onclick = story;
   element('garden-button').onclick = garden;
@@ -252,15 +263,32 @@ function voiceActivity(activity) {
   if (activity === 'listening' && characterActions?.active) { characterActions.stop(); element('pip-position')?.setAttribute('transform', 'translate(740 466)'); }
   pip.dataset.presence = activity;
   characterActions?.listening(activity === 'listening');
+  if (!characterActions?.active) {
+    pip.dataset.expression = activity === 'thinking' || activity === 'listening' ? 'curious' : activity === 'speaking' ? 'smile' : 'tender';
+    element('mood-label').textContent = activity === 'listening' ? 'listening to you' : activity === 'thinking' ? 'finding her words' : activity === 'speaking' ? 'sharing a thought' : 'feeling at home';
+  }
   if (!characterActions?.active) element('activity-label').textContent = activity === 'listening' ? 'Pip is listening to you' : activity === 'thinking' ? 'Pip is considering your words' : activity === 'speaking' ? 'Pip is sharing a little thought' : activity === 'paused' ? 'Your microphone is paused' : 'Pip is here with you';
 }
 
-function voiceEnergy(energy) { pip?.style.setProperty('--voice-open', String(0.6 + energy * 2.4)); }
+function voiceEnergy(energy) { pip?.style.setProperty('--voice-open', String(0.25 + Math.min(1, Math.max(0, energy)) * 1.1)); }
 
 function performWorldAction(input) {
   try {
-    const { action } = validateWorldAction({ action: input.action });
+    const { action, expression, text } = validateWorldAction({ action: input.action, ...(input.expression ? { expression: input.expression } : {}), ...(input.text !== undefined ? { text: input.text } : {}) });
     if (!pip || document.hidden) return { ok: false };
+    if (applyAmbience(state, action)) {
+      save(); updateClock();
+      const summary = action === 'cozy' ? 'Our home turns honey-gold. A warm fire, a closed window, and nowhere to rush.' : action === 'cold' ? 'A crisp blue morning. Snow outside, an open window, and Pip’s favorite scarf.' : action === 'open-window' ? 'The window opens. A little fresh air moves through Pip’s home.' : 'The window closes. The little home feels sheltered again.';
+      element('scene-subtitle').textContent = summary;
+      return { ok: true, summary };
+    }
+    if (ACTIVITY_ACTIONS.includes(action)) {
+      if (panel.open && liveVoice) element('show-voice-home')?.click();
+      else if (panel.open && phonePairing) element('pair-home')?.click();
+      characterActions.perform({ action: action === 'connection-note' ? 'nod' : action === 'tiny-story' ? 'read' : 'express', expression: expression || 'curious' });
+      return companionActivities.show(action, text);
+    }
+    if (action === 'stargaze') { state.atmosphere = 'evening'; save(); updateClock(); }
     if (['rain', 'evening', 'daylight'].includes(action)) {
       state.atmosphere = action === 'daylight' ? 'day' : action; save(); updateClock();
       element('scene-subtitle').textContent = action === 'rain' ? 'Rain taps softly on our window.' : action === 'evening' ? 'Our little home is warm in the evening light.' : 'A little sunshine for our home.';
@@ -270,7 +298,7 @@ function performWorldAction(input) {
       state.garden = action; save(); element('scene-subtitle').textContent = `A little patch of ${action}, chosen together.`;
       return { ok: true };
     }
-    return characterActions.perform({ action });
+    return characterActions.perform({ action, ...(expression ? { expression } : {}) });
   } catch { return { ok: false }; }
 }
 
@@ -288,7 +316,11 @@ function surpriseWithPip() {
     ['A very dignified stretch. I learned it from a cat who refused to explain herself.', 'stretch'],
     ['A little wave, just because. Not every hello needs an occasion.', 'wave'],
     ['My dancing has been described as “unexpected.” By me. Everyone else was too polite.', 'dance'],
-    ['I found a story about a mouse who opened a tiny umbrella shop. Business was small, but she had big plans.', 'read']
+    ['I found a story about a mouse who opened a tiny umbrella shop. Business was small, but she had big plans.', 'read'],
+    ['Three woodland treasures. Two paws. What could possibly go wrong? Please do not answer that mathematically.', 'juggle'],
+    ['A grand bow. The fern has asked for an encore, but I suspect she just wants more water.', 'bow'],
+    ['I have made imaginary tea. It is wonderfully affordable and never stains the rug.', 'tea'],
+    ['A very small twirl. I am saving the large one for when the furniture is insured.', 'twirl']
   ];
   const [words, action] = moments[surpriseCount++ % moments.length];
   say(words, [['Another little surprise', surpriseWithPip], ['Let’s dance', danceWithPip], ['Just stay here', quietCompany]]);
@@ -336,7 +368,8 @@ function breathe() {
 }
 
 function atmosphere() {
-  openPanel('MAKE IT COZY', '<h2>What kind of afternoon?</h2><p>A little change of light can change the whole room.</p><div class="game-options"><button class="subtle-button" data-atmosphere="auto">Follow the time of day</button><button class="subtle-button" data-atmosphere="day">A golden afternoon</button><button class="subtle-button" data-atmosphere="evening">An evening by the fire</button><button class="subtle-button" data-atmosphere="rain">Rain against the window</button></div>');
+  openPanel('A DIFFERENT FEELING', `<h2>How should our little home feel?</h2><p>Choose a whole mood, then make it your own. This changes Pip’s fictional home, not your room’s temperature.</p><div class="vibe-options"><button class="vibe-tile cozy-tile" data-vibe="cozy" aria-pressed="${state.vibe === 'cozy'}"><strong>Warm & cozy</strong><span>Honey light, a lively fire, a sheltered window.</span></button><button class="vibe-tile cold-tile" data-vibe="cold" aria-pressed="${state.vibe === 'cold'}"><strong>Crisp & cold</strong><span>Blue light, drifting snow, a scarf and fresh air.</span></button></div><h3>The window</h3><div class="panel-actions"><button class="subtle-button" data-window="open" aria-pressed="${state.window === 'open'}">Open the window</button><button class="subtle-button" data-window="closed" aria-pressed="${state.window === 'closed'}">Close the window</button></div><h3>Light & weather</h3><div class="game-options"><button class="subtle-button" data-atmosphere="auto">Follow the time of day</button><button class="subtle-button" data-atmosphere="day">A golden afternoon</button><button class="subtle-button" data-atmosphere="evening">An evening by the fire</button><button class="subtle-button" data-atmosphere="rain">Rain against the window</button></div>`);
+  panel.querySelectorAll('[data-vibe],[data-window]').forEach(button => button.onclick = () => { performWorldAction({ action: button.dataset.vibe || (button.dataset.window === 'open' ? 'open-window' : 'close-window') }); closePanel(); toast('A little change of feeling. Saved for your next visit.'); });
   panel.querySelectorAll('[data-atmosphere]').forEach(button => button.onclick = () => { state.atmosphere = button.dataset.atmosphere; save(); updateClock(); closePanel(); toast('A little change of atmosphere.'); });
 }
 
@@ -470,7 +503,7 @@ function voiceConversation() {
     const target = new URL(`${backendUrl}/api/voice`, location.href); target.protocol = target.protocol === 'https:' ? 'wss:' : 'ws:';
     liveVoice = new RealtimeVoice({
       endpoint: target.href, voice: state.voice, mode: element('voice-mode')?.value || 'conversation',
-      context: { name: state.name, day: state.day, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, storyPath: state.storyPath } },
+      context: { name: state.name, day: state.day, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } },
       onAction: performWorldAction, onActivity: voiceActivity, onEnergy: voiceEnergy,
       onStatus: status => { if (element('live-voice-status')) element('live-voice-status').textContent = status; if (element('live-status')) element('live-status').textContent = status; },
       onSpeaking: active => { pip?.classList.toggle('speaking', active); element('live-voice-status')?.classList.toggle('is-speaking', active); },
@@ -538,7 +571,7 @@ async function pairPhone(mode = 'conversation') {
   stopSpeech();
   const pairing = new PhonePairing(pairingCallbacks()); phonePairing = pairing;
   try {
-    const room = await pairing.host({ mode, name: state.name, day: state.day, voice: state.voice, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, storyPath: state.storyPath } });
+    const room = await pairing.host({ mode, name: state.name, day: state.day, voice: state.voice, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } });
     if (!room || phonePairing !== pairing) return;
     element('pair-link').innerHTML = `<img width="220" height="220" src="${escapeHtml(room.qr)}" alt="Scan to connect your phone"><p><a href="${escapeHtml(room.joinUrl)}" target="_blank" rel="noopener">Open phone microphone</a></p>`;
     element('pair-status').textContent = 'Waiting for your phone…';
@@ -635,11 +668,12 @@ function updateClock() {
   element('clock').textContent = now.toLocaleDateString(undefined, { weekday: 'long' }) + ', ' + now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   element('day-label').textContent = `A quiet ${now.toLocaleDateString(undefined, { weekday: 'long' })}`;
   const evening = state.atmosphere === 'evening' || (state.atmosphere === 'auto' && (now.getHours() >= 18 || now.getHours() < 6));
-  element('world-time').textContent = state.atmosphere === 'rain' ? 'RAIN AT THE WINDOW' : evening ? 'BY THE EVENING FIRE' : 'A LITTLE DAYLIGHT';
+  element('world-time').textContent = state.atmosphere === 'rain' ? 'RAIN AT THE WINDOW' : `${state.vibe === 'cold' ? 'CRISP & COLD' : 'WARM & COZY'} · ${state.window === 'open' ? 'WINDOW OPEN' : 'WINDOW CLOSED'}`;
   document.querySelector('.world').classList.toggle('evening', evening);
 }
 
 element('home-button').onclick = home;
+element('vibe-switch').onclick = () => { performWorldAction({ action: state.vibe === 'cozy' ? 'cold' : 'cozy' }); };
 element('memories-button').onclick = memories;
 element('room-button').onclick = room;
 element('settings-button').onclick = settings;
@@ -647,7 +681,7 @@ element('talk-button').onclick = talk;
 element('demo-button').onclick = demoPanel;
 element('sound-button').onclick = () => {
   state.sound = !state.sound; save();
-  if (state.sound) { speak('Hello. It’s good to have you here.'); if (!window.HearthNative && !('speechSynthesis' in window)) toast('Spoken replies are unavailable here. Captions are always shown.'); }
+  if (state.sound) speak('Hello. It’s good to have you here.');
   else stopSpeech();
 };
 element('fullscreen-button').onclick = async () => {
@@ -658,6 +692,7 @@ element('fullscreen-button').onclick = async () => {
 document.addEventListener('keydown', event => {
   const active = document.activeElement;
   if ((event.key === 'Escape' || event.key === 'BrowserBack') && panel.open) { event.preventDefault(); closePanel(); return; }
+  if ((event.key === 'Escape' || event.key === 'BrowserBack') && window.HearthNative?.exit) { event.preventDefault(); window.HearthNative.exit(); return; }
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) return;
   if (event.key === 'Enter' && active === document.body) { event.preventDefault(); talk(); return; }
   if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
@@ -699,16 +734,17 @@ document.addEventListener('visibilitychange', () => {
 });
 window.hearthPause = () => { clearTimeout(idleTimer); clearInvitation(); characterActions?.stop(); firesideTune.stop(); recognition?.abort(); stopSpeech(); stopLiveVoice(); clearInterval(breathTimer); requestController?.abort(); };
 
-for (const eventName of ['pointerdown', 'keydown']) document.addEventListener(eventName, () => { if (!element('pip-invitation')) scheduleInvitation(); }, { passive: true });
+for (const eventName of ['pointerdown', 'keydown']) document.addEventListener(eventName, () => { speechAllowed = true; if (!element('pip-invitation')) scheduleInvitation(); }, { passive: true, capture: true });
 
 async function initialise() {
+  configReady = fetch(`${backendUrl}/api/config`).then(response => response.ok ? response.json() : {}).then(config => { backendAvailable = config.dialogue === 'bedrock'; sonicAvailable = config.voice === 'nova-sonic'; attentionAvailable = config.attention === 'jev'; if (sonicAvailable) element('voice-hint').textContent = attentionAvailable ? 'Hands-free company, with room for quiet' : 'A cozy, natural conversation'; }).catch(() => {});
   if (window.HearthNative || new URLSearchParams(location.search).has('tv')) document.body.classList.add('tv');
   try {
     const response = await fetch('room.svg');
     if (!response.ok) throw new Error('Room unavailable');
     element('room-mount').innerHTML = await response.text();
     pip = element('pip');
-    characterActions = new CharacterActions({ character: pip, position: element('pip-position'), label: element('activity-label'), onChange: action => { if (element('watering-can')) element('watering-can').style.opacity = action === 'water' ? '1' : '0'; if (!action) { if (pip?.dataset.presence) voiceActivity(pip.dataset.presence); else element('activity-label').textContent = 'Pip is enjoying a quiet moment'; } } });
+    characterActions = new CharacterActions({ reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches, character: pip, position: element('pip-position'), label: element('activity-label'), onChange: action => { if (element('watering-can')) element('watering-can').style.opacity = action === 'water' ? '1' : '0'; if (!action) { if (pip?.dataset.presence) voiceActivity(pip.dataset.presence); else element('activity-label').textContent = 'Pip is enjoying a quiet moment'; } } });
   } catch { element('room-mount').innerHTML = '<img class="room" src="room.svg" alt="Pip’s warm illustrated home">'; toast('The home is taking a moment to load. You can still talk with Pip.'); }
   updateClock();
   setInterval(updateClock, 60000);
@@ -716,6 +752,5 @@ async function initialise() {
   home();
   const joinToken = new URLSearchParams(location.search).get('join');
   if (joinToken && /^[a-f0-9-]{36}$/.test(joinToken)) joinPhone(joinToken);
-  fetch(`${backendUrl}/api/config`).then(response => response.ok ? response.json() : {}).then(config => { backendAvailable = config.dialogue === 'bedrock'; sonicAvailable = config.voice === 'nova-sonic'; attentionAvailable = config.attention === 'jev'; if (sonicAvailable) element('voice-hint').textContent = attentionAvailable ? 'Hands-free company, with room for quiet' : 'A cozy, natural conversation'; }).catch(() => {});
 }
 initialise();

@@ -10,3 +10,9 @@ android/.gradle/
 android/local.properties
 android/**/build/
 artifacts/*.apk
+vega/build/
+vega/dist/
+vega/.tmp/
+vega/buildinfo.json
+vega/CMakeUserPresets.json
+artifacts/*.vpkg

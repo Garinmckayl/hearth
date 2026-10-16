@@ -29,4 +29,6 @@ Do not replace the companion with a looping video or a generic downloaded charac
 
 ## Next artistic work
 
-Create additional authored expressions and prop poses using the same SVG rig, then evaluate them on the supported television runtime. If adopting Lottie, test assets for unsupported effects and performance on that runtime. Rive is not a submission dependency and is not included in the implementation.
+The rig now includes independent eyebrows, left/right eye shapes, a surprised mouth, blush, steam, and three juggling props. Seven expression states layer over nods, shrugs, bows, applause, twirls, tea, juggling and stargazing. Motion uses eased anticipation/action/settle cycles; expressive poses are bounded and conversation interruptions retain priority. Activity cards are application UI, not baked into an animation, and remote choices feed the live conversation without ending pairing.
+
+Next, evaluate expression readability at television viewing distance and with older adults, improve the twirl’s side silhouette, and test these poses on the official television runtime. If adopting Lottie, test unsupported effects and performance there. Rive remains optional and is not included.

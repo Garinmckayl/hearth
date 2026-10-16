@@ -19,6 +19,7 @@ export class PhonePairing {
         if (data.type === 'status') this.status(data.text);
         if (data.type === 'voice-event') this.voice?.event(data.event);
         if (data.type === 'action-result') this.voice?.actionResult(data.result);
+        if (data.type === 'user-text') this.voice?.submitText(data.text);
       } catch { this.status('The phone connection could not read a response.'); this.stop(); }
     };
     this.socket.onerror = () => this.status('Pairing could not connect. Create a fresh link on the television.');
@@ -51,6 +52,7 @@ export class PhonePairing {
   send(message) {
     if (this.socket?.readyState === 1 && this.socket.bufferedAmount < 1000000) this.socket.send(JSON.stringify(message));
   }
+  userText(text) { if (this.closed || this.socket?.readyState !== 1) return false; this.send({ type: 'user-text', text }); return true; }
   stop() {
     this.closed = true;
     this.voice?.stop();

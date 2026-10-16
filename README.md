@@ -2,6 +2,14 @@
 
 An interactive television home for an explicitly fictional companion named Pip. Pip tends plants, watches the garden, warms up by the fire, remembers moments you choose to keep, and helps you take small steps toward real-world connection.
 
+## Review checkpoint — October 16, 2026
+
+The prototype includes richer activities and expressions, cozy/cold quick switching, silent refresh, persistent phone pairing, and an official Vega wrapper. Start locally using the instructions below; the previous temporary Cloudflare preview is offline. Live voice requires server-side configuration, while story mode works without credentials.
+
+Official ARM simulator rendering and remote selection are verified in `docs/official-simulator.md`; simulator voice and interruption are still acceptance checks, not completed claims. The disposable AWS Mac dedicated host is verified **released**; no simulator is currently running. Before building the Vega wrapper for another session, set `HEARTH_BACKEND_URL` to a working HTTPS backend rather than relying on the historical preview URL in its configuration.
+
+Review the home, vibe button, Something together activities, microphone pause/end controls, and memory settings first. Submission positioning and remaining gates are in `docs/submission.md`. Demo recording comes after review and remaining target checks; no footage has been recorded yet.
+
 ## Open the home
 
 Requires Node.js 22.9 or later.
@@ -54,7 +62,23 @@ Choose **Start in Pip’s home** to converse while the character stays visible. 
 
 Real generative Polly Tiffany speech and Sonic dance-tool invocation have been tested. A browser check also passed with synthesized microphone input through the public Cloudflare link, real Sonic inference, a visible dance in the home, and a real browser action acknowledgment. The isolated WebSocket check uses a test-client acknowledgment; automated regression tests use mocked inference to avoid charges. These checks are not a substitute for human usability research or official simulator submission footage.
 
-The `?tv=1` preview is a browser layout, **not an official Fire TV simulator**. The Android APK is an actual installable TV wrapper, not proof of Fire TV compatibility. Official Vega virtual-device testing requires Amazon’s SDK and KVM; this development host has no `/dev/kvm`. Test the APK on actual Fire OS hardware with `npm run firetv -- DEVICE_IP:5555 --install`. Vega OS requires a separate compatible Vega package.
+The `?tv=1` preview is a browser layout, **not an official Fire TV simulator**. The Android APK is an actual installable TV wrapper, not proof of Fire TV compatibility. Test the APK on actual Fire OS hardware with `npm run firetv -- DEVICE_IP:5555 --install`.
+
+## Official Vega simulator
+
+`vega/` is a separate React Native for Vega application using Amazon’s official WebView component, not the Android APK. It opens the HTTPS Hearth home in TV mode with persistent DOM storage, remote key delivery, background conversation cleanup, and connection-error recovery. Nova Sonic uses the existing phone-pairing flow; direct Vega microphone capture is not implemented.
+
+Install Amazon’s Vega SDK following its documentation, then:
+
+```bash
+npm ci --prefix vega
+HEARTH_BACKEND_URL=https://YOUR_HEARTH_HOST npm run build:vega
+npm run simulator
+```
+
+The build defaults to the host architecture (`x86_64`, or `aarch64` on Apple Silicon). Set `HEARTH_VEGA_TARGET` to build another architecture. The backend must remain online; temporary Cloudflare URLs must be updated and rebuilt when they change. The wrapper does not embed credentials or grant microphone access automatically.
+
+On a headless Ubuntu server, use `npm run simulator -- --headless --software-graphics`. The simulator boot timeout defaults to 1200 seconds to accommodate slow software emulation. Hardware acceleration is strongly recommended. Stop with `npm run simulator -- --stop`. See `docs/official-simulator.md` for evidence and capture requirements.
 
 For a controlled native AI demo, serve the backend at an HTTPS origin, set `ALLOW_NATIVE_CLIENT=true` on the server, and build with:
 
@@ -64,9 +88,19 @@ HEARTH_BACKEND_URL=https://your-backend.example npm run build:android
 
 The native app will discover that backend and expose the same opt-in setting. The backend defaults to localhost; configure `HOST` and HTTPS termination for remote access. The included server is a development server with basic concurrency/rate limits. Add authenticated access and proper production hosting before exposing paid model inference publicly.
 
-## Privacy and honest boundaries
+## More than a dance
 
-### Hands-free company with Jev
+Use the **Cold vibe / Cozy vibe** button at the top-right of the scene for a one-click switch without opening a panel or ending your conversation. It supports the remote and keyboard and saves the new mood. Pip’s independent rig is 22% larger, while brighter firelight and richer fur, foliage, book and flower colors make the home easier to read at a distance.
+
+**Home vibes:** choose **Something together → Make it cozy** for Warm & cozy (honey-colored walls, amber evening light, a strong fire and a closed window) or Crisp & cold (blue-gray colors, snowy scenery, a quieter fire, Pip’s scarf and an open window). The window opens and closes independently, with a breeze or frost detail. Vibe and window preferences persist locally. Ask Pip “Make it cozy,” “Give our home a cold winter vibe,” “Open the window,” or “Close the window.” These change only her illustrated world, never physical windows or heating. Light and rain remain separately selectable; snowfall yields to rain when rain is chosen.
+
+Pip now has seven controlled facial expressions (smile, curious, surprised, mischievous, tender, proud, sleepy) and new nod, shrug, bow, clap, twirl, imaginary-tea, juggling, and stargazing poses. All use the local SVG/CSS rig, respect reduced motion, and can be interrupted by an accepted conversation turn. Nova Sonic can request a facial expression alongside an action, or use `express` on its own.
+
+Try “Juggle something for me,” “Take a very grand bow,” “Let’s look at the stars,” “Give me a riddle,” “Let’s invent a ridiculous picnic,” “Make a tiny story with me,” or “Help me draft a hello to my daughter.” Riddle, word-game, tiny-story, and connection-note tools open real TV activity cards. Riddles return their displayed challenge to Sonic so it knows the answer; remote-button choices travel back through phone pairing to the conversation. Custom story openings stay conversational, rather than imposing the default story’s choices. Note drafts are editable and copied only when you ask; Pip does not send messages or make calls. Unsaved drafts disappear when their activity closes. The same activities are available under **Something together** without AI.
+
+Page load and refresh are silent, even with Sound on saved. After an interaction, scripted speech waits for voice configuration and uses warm Polly speech only; unavailable speech leaves captions instead of silently falling back to browser/native robotic TTS. Live dialogue remains Nova Sonic. This avoids the startup race that selected system speech before backend discovery completed.
+
+## Hands-free company with Jev
 
 Set the server-only `OPENROUTER_API_KEY` and optionally `JEV_MODEL_ID=~typesafe/jev-latest`. Enable Nova Sonic as described above and grant `transcribe:StartStreamTranscription` to the AWS identity. Choose **Talk with Pip → Speak with Pip, naturally → Hands-free company → Use your phone as microphone**. Scan the private QR link, press **Enjoy our home** on the TV, then explicitly start the phone microphone. **Start in Pip’s home** also works with a microphone on the same browser.
 

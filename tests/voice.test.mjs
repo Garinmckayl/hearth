@@ -107,9 +107,10 @@ test('voice actions wait for television acknowledgment before reporting success'
     const action = await requested;
     assert.equal(action.action, 'dance'); assert.equal(result, undefined);
     const confirmed = once(socket, 'message');
-    socket.send(JSON.stringify({ type: 'action-result', toolUseId: action.toolUseId, ok: true }));
+    socket.send(JSON.stringify({ type: 'action-result', toolUseId: action.toolUseId, ok: true, summary: 'A visible activity was opened.' }));
     const event = JSON.parse((await confirmed)[0]);
     assert.equal(event.testResult.ok, true);
     assert.equal(event.testResult.action, 'dance');
+    assert.equal(event.testResult.summary, 'A visible activity was opened.');
   } finally { socket.terminate(); await new Promise(resolve => server.close(resolve)); }
 });

@@ -5,7 +5,7 @@ export function localDate(date = new Date()) {
 }
 
 export function freshState() {
-  return { version: 1, name: '', day: 1, sound: false, remember: true, largeText: false, gentleInvitations: true, connectedDialogue: false, voice: 'tiffany', atmosphere: 'auto', garden: null, storyPath: [], memories: [], lastVisit: localDate() };
+  return { version: 1, name: '', day: 1, sound: false, remember: true, largeText: false, gentleInvitations: true, connectedDialogue: false, voice: 'tiffany', atmosphere: 'auto', vibe: 'cozy', window: 'closed', garden: null, storyPath: [], memories: [], lastVisit: localDate() };
 }
 
 export function loadState(storage) {
@@ -20,6 +20,8 @@ export function loadState(storage) {
     }
     state.voice = ['tiffany', 'amy', 'olivia'].includes(saved.voice) ? saved.voice : 'tiffany';
     state.atmosphere = ['auto', 'day', 'evening', 'rain'].includes(saved.atmosphere) ? saved.atmosphere : 'auto';
+    state.vibe = ['cozy', 'cold'].includes(saved.vibe) ? saved.vibe : 'cozy';
+    state.window = ['open', 'closed'].includes(saved.window) ? saved.window : 'closed';
     state.garden = ['sunflowers', 'moonflowers'].includes(saved.garden) ? saved.garden : null;
     state.storyPath = Array.isArray(saved.storyPath) ? saved.storyPath.filter(choice => ['owl', 'stream', 'lantern', 'seed'].includes(choice)).slice(0, 2) : [];
     state.memories = Array.isArray(saved.memories) ? saved.memories.filter(memory => memory && typeof memory.id === 'string' && typeof memory.text === 'string' && Number.isInteger(memory.day) && memory.day > 0).slice(-50).map(memory => ({ id: memory.id.slice(0, 100), text: memory.text.slice(0, 500), day: memory.day })) : [];
