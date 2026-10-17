@@ -46,7 +46,7 @@ let speechAllowed = false;
 let configReady;
 const backendUrl = window.HearthNative?.backendUrl() || '';
 const movieNight = new MovieNight({ backendUrl, openPanel: (kicker, html) => openPanel(kicker, html, true), mount: document.querySelector('.world'), onForget: () => { history = []; stopLiveVoice(); }, onTurn: text => liveVoice ? liveVoice.submitText(text) : phonePairing?.userText(text) || false });
-const cinema = new Cinema({backendUrl, mount:document.querySelector('.world'), openPanel:(kicker,html)=>openPanel(kicker,html,true), onTurn:text=>liveVoice?.submitText(text) || phonePairing?.userText(text), onPlayback:playback=>phonePairing?.playback(playback), onPair:()=>pairPhone('conversation',true), onTvControls:()=>movieNight.show(), onForget:()=>{history=[];stopLiveVoice();}, onClose:()=>element('cinema-button').focus(), onPrime:async (film,url)=>{
+const cinema = new Cinema({backendUrl, mount:document.querySelector('.world'), openPanel:(kicker,html)=>openPanel(kicker,html,true), onTurn:text=>liveVoice?.submitText(text) || phonePairing?.userText(text), onSpeak:text=>{speechAllowed=true;speak(text,{force:true});}, onPlayback:playback=>phonePairing?.playback(playback), onPair:()=>pairPhone('conversation',true), onTvControls:()=>movieNight.show(), onForget:()=>{history=[];stopLiveVoice();}, onClose:()=>element('cinema-button').focus(), onPrime:async (film,url)=>{
   if (window.HearthNative?.tvControl) return window.HearthNative.tvControl(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
   if (movieNight.token) return movieNight.request(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
   window.open(url,'_blank','noopener');
@@ -97,10 +97,10 @@ function setMood(mood = 'content') {
   if (element('watering-can')) element('watering-can').style.opacity = mood === 'content' ? '1' : '0';
 }
 
-async function speak(text) {
-  if (!state.sound || !speechAllowed || document.hidden || liveVoice || phonePairing?.voice) return;
+async function speak(text, { force = false } = {}) {
+  if ((!state.sound && !force) || !speechAllowed || document.hidden || liveVoice || phonePairing?.voice) return;
   await configReady;
-  if (!state.sound || document.hidden || liveVoice || phonePairing?.voice) return;
+  if ((!state.sound && !force) || document.hidden || liveVoice || phonePairing?.voice) return;
   if (sonicAvailable) {
     stopSpeech();
     const controller = new AbortController(); speechRequest = controller;

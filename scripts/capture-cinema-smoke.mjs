@@ -31,7 +31,11 @@ try{
   const recommendation=await(await reply).json();
   if(recommendation.source!=='bedrock'||!recommendation.picks.includes('bunny'))throw new Error('Live recommendation did not select the playable woodland comedy.');
   report.recommendation=recommendation;report.checks.push('Live Bedrock recommended Big Buck Bunny for the viewer’s short woodland comedy request');
-  await tv.waitForTimeout(2000);await tv.locator('[data-film="bunny"] button').click();
+  const speakRes=await fetch(`${origin}/api/speak`,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({text:recommendation.text,voice:'tiffany'})});
+  if(speakRes.ok){const wav=Buffer.from(await speakRes.arrayBuffer());if(wav.length>44){const pcm=wav.subarray(44);cursor=Math.max(cursor,Math.round((Date.now()-started)*24)*2);parts.push({at:cursor,pcm});cursor+=pcm.length;}}
+  await tv.locator('[data-film="bunny"] button').focus();
+  await tv.waitForTimeout(Math.min(12000,Math.max(5000,cursor/48-(Date.now()-started)+500)));
+  await tv.locator('[data-film="bunny"] button').click();
   const video=tv.locator('#cinema-video');await expect.poll(()=>video.evaluate(v=>v.currentTime)).toBeGreaterThan(.5);
   report.checks.push('The actual 596-second open film decoded and played in the TV player');
   await tv.locator('#cinema-pair').click();

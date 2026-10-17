@@ -12,13 +12,15 @@
   ],
   "errors": [],
   "recommendation": {
-    "text": "Ah, woodland comedy—right up my leafy avenue! Big Buck Bunny is a perfect ten-minute cartoon about a giant rabbit and three cheeky woodland troublemakers. It’s pure slapstick with a heartwarming vibe. You’ll love those squirrels; I have strong opinions about them!",
+    "text": "Big Buck Bunny is perfect: it’s funny, short, and full of woodland animals. A gentle giant rabbit and three cheeky creatures will keep us smiling.",
     "picks": [
-      "bunny"
+      "bunny",
+      "paddington",
+      "sintel-trailer"
     ],
     "source": "bedrock"
   },
-  "durationSeconds": 53.202,
-  "audioBytes": 2367360,
+  "durationSeconds": 49.525,
+  "audioBytes": 2088960,
   "passed": true
 }

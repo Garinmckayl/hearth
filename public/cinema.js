@@ -3,8 +3,8 @@ import { FILMS, filmById, rankFilms, primeSearch } from './film-catalog.js';
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clock = seconds => `${Math.floor((seconds || 0) / 60)}:${String(Math.floor((seconds || 0) % 60)).padStart(2, '0')}`;
 export class Cinema {
-  constructor({ openPanel, mount, backendUrl = '', onTurn = () => {}, onPlayback = () => {}, onPrime = () => {}, onPair = () => {}, onTvControls = () => {}, onForget = () => {}, onClose = () => {} }) {
-    Object.assign(this, { openPanel, mount, backendUrl, onTurn, onPlayback, onPrime, onPair, onTvControls, onForget, onClose });
+  constructor({ openPanel, mount, backendUrl = '', onTurn = () => {}, onSpeak = () => {}, onPlayback = () => {}, onPrime = () => {}, onPair = () => {}, onTvControls = () => {}, onForget = () => {}, onClose = () => {} }) {
+    Object.assign(this, { openPanel, mount, backendUrl, onTurn, onSpeak, onPlayback, onPrime, onPair, onTvControls, onForget, onClose });
     try { this.profile = JSON.parse(localStorage.getItem('hearth.cinema.v1') || '{}'); } catch { this.profile = {}; }
     this.profile.preferences = typeof this.profile.preferences === 'string' ? this.profile.preferences.slice(0, 500) : '';
     this.profile.history = Array.isArray(this.profile.history) ? this.profile.history.slice(-30) : [];
@@ -25,6 +25,7 @@ export class Cinema {
       if (status) status.textContent = reply.text;
       this.caption(reply.text);
       if (recommendations) this.renderShelf(recommendations, reply.picks.map(filmById).filter(Boolean));
+      this.onSpeak?.(reply.text);
       return reply;
     } catch {
       if (sequence !== this.askSequence) return;
