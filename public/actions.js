@@ -1,7 +1,8 @@
 import { AMBIENCE_ACTIONS } from './ambience.js';
+import { TV_ACTIONS } from './movie-night.js';
 
 export const EXPRESSIONS = ['smile', 'curious', 'surprised', 'mischievous', 'tender', 'proud', 'sleepy'];
-export const ACTIVITY_ACTIONS = ['riddle', 'word-game', 'tiny-story', 'connection-note'];
+export const ACTIVITY_ACTIONS = ['riddle', 'word-game', 'tiny-story', 'connection-note', ...TV_ACTIONS];
 export const WORLD_ACTIONS = ['dance', 'wave', 'laugh', 'stretch', 'water', 'read', 'sit', 'rain', 'evening', 'daylight', 'sunflowers', 'moonflowers', 'nod', 'shrug', 'bow', 'clap', 'twirl', 'tea', 'juggle', 'stargaze', 'express', ...ACTIVITY_ACTIONS, ...AMBIENCE_ACTIONS];
 
 export function validateWorldAction(input) {

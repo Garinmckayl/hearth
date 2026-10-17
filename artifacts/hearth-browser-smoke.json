@@ -1,0 +1,16 @@
+{
+  "runtime": "Chromium browser, not official Vega simulator",
+  "syntheticMicrophone": true,
+  "mockedProviders": false,
+  "checks": [
+    "Current home rendered",
+    "Keyboard selection switched to cold",
+    "Synthetic microphone → real Nova Sonic → dance tool → real browser action acknowledgment",
+    "Received 460800 bytes of real response audio",
+    "Microphone pause",
+    "Conversation ended and live status removed"
+  ],
+  "errors": [],
+  "durationSeconds": 24.184,
+  "passed": true
+}

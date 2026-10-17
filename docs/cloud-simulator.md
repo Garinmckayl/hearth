@@ -2,9 +2,29 @@
 
 Provisioned October 13, 2026 in `us-east-1` for official simulator testing.
 
-## Cleanup verified October 16
+## Bounded smoke-test session — October 16
 
-AWS `DescribeHosts` reports dedicated host `h-08c439aae64c3ece5` as **released**. Neither disposable simulator instance appears in `DescribeInstances` for its exact ID. No replacement host has been launched. The provisioning details below are historical; there is no active simulator viewer. A future recording session requires a newly authorized, explicitly time-bounded host or a locally available official simulator.
+The user authorized a replacement simulator session after reviewing its cost and cleanup bounds. A cheaper Apple M1 host (`mac2.metal`) was allocated in `us-east-1a`: `h-07fdfc2fc8459d6ed`. AWS Price List API verified $0.65 per host-hour, with a 24-hour minimum of $15.60 before EBS, IPv4, service usage, and taxes. Credit eligibility has not been verified.
+
+The initial attempt ended before its **October 16 at 22:53 UTC** deadline without completing startup. After the user requested continuing on October 17, the existing host was reused within its original 24-hour minimum allocation. The new instance `i-05bfd2108fa0ca654` must terminate by **October 17 at 04:55 UTC**; a new enabled EventBridge schedule targets that exact instance, and refreshed boot user data supplies a local shutdown fallback. No additional dedicated host was allocated. The host-release schedule still requests release every fifteen minutes after **October 17 at 16:56 UTC**, through **October 18 at 04:53 UTC**. These schedules are safeguards, not a guaranteed monetary cap; confirm the dedicated host reaches `released`.
+
+The first instance request failed with `Server.InsufficientInstanceCapacity` while the allocated dedicated host was still `pending`. The retry waits for that same host to become `available`; no second host is allocated. Exact current resource IDs and cleanup schedule names are in `artifacts/simulator-session-20261016.json`. Simulator execution is not yet verified for this session.
+
+## Current proof and automated simulator check
+
+The current browser smoke check passed with synthetic microphone input, real Nova Sonic inference, a dance action and browser acknowledgment, microphone pause, and conversation end. The 24.96-second MP4 is available at https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-browser-smoke.mp4. Public playback was verified in Chromium at 1920×1080. This is browser evidence; it does not verify the official simulator or cross-app TV playback.
+
+The public page at https://synthetic-searched-strength-displaying.trycloudflare.com now shows the 54-second movie-night browser check and polls simulator status. A local background worker launches only the existing host's session instance, installs the pinned official SDK, verifies the ARM package, pairs a browser phone using the actual simulator QR, and starts an actual open film, requests native media discovery, and checks a spoken movie pause plus the simulator player's acknowledgment. On success it publishes native simulator video to the same page and requests early instance termination. On failure it publishes the blocked stage and retains the instance for diagnosis until its scheduled shutdown. The renewed instance deadline and original host-release schedule remain in force. The page and tunnels depend on this workspace's running processes.
+
+The new instance failed reachability checks before SSM registered. One recovery reboot was requested. AWS host recovery was then enabled after checking the current AWS documentation: Mac2 is supported and AWS lists no additional recovery fee, although usual host billing still applies. A separate watcher follows any replacement host ID and updates the exact IAM cleanup policy and host-release target. The release retry end was extended to **October 19 at 04:53 UTC** to cover a recovered host's minimum allocation; the instance shutdown deadline remains **October 17 at 04:55 UTC**.
+
+At October 17, 01:17 UTC, AWS accepted a boot-volume replacement task using the older AWS macOS 15.7.9 ARM image `ami-0faaf322c2ee142fd`. Because `ReplaceRootVolume` preserves the original launch template's throttled EBS parameters (`3000 IOPS`, `125 MiB/s`, encrypted hydration) and `UserData`, the instance remained impaired (`NetworkIn = 0`, `NetworkOut = 0`) and was terminated on schedule at **October 17 at 04:56:13 UTC**. Following post-termination scrubbing, dedicated host `h-07fdfc2fc8459d6ed` returned to `available` (`AvailableCapacity: 1`).
+
+Launch template `lt-0dfea0dc2511baa41` (version 4) has been updated to match the proven October 13 configuration (`ami-0faaf322c2ee142fd`, 150 GiB `gp3`, `5000 IOPS`, `500 MiB/s` throughput, unencrypted direct snapshot hydration, and no boot-time `UserData`). At **October 17, 07:16 UTC**, an automated AWS Account Verification hold (`Client.Blocked` on `ec2:RunInstances` and `Operation not allowed` on `bedrock-runtime:Converse`) was placed on the AWS account after an older access key was used externally; that key and all unauthorized IAM/EC2 resources were deleted, and a background supervisor is armed to launch the clean simulator run as soon as AWS Support lifts the hold. Worker status is retained in `artifacts/simulator-worker-status.json`, with session resources in `artifacts/simulator-session-20261016.json`.
+
+## Previous-session cleanup verified October 16
+
+AWS `DescribeHosts` reports the previous dedicated host `h-08c439aae64c3ece5` as **released**. Neither previous disposable simulator instance appears in `DescribeInstances` for its exact ID. The provisioning details below are historical; the authorized replacement session is described above.
 
 - Instance: `i-08103b0ca22704b64`, `m7i.xlarge` (4 vCPU, 16 GiB RAM).
 - Ubuntu 24.04; nested virtualization explicitly enabled.

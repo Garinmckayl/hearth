@@ -2,6 +2,14 @@
 
 These are implementation observations, not claims about all supported devices. Confirm them against the submitted revision. Never include pairing tokens, emulator authentication tokens, AWS credentials, or private user speech in logs.
 
+## Vega Media Controls client and app-to-app Linking
+
+The media-hub client API is the correct native route for Hearth's cross-app playback controls. The public guide explicitly supports third-party client apps discovering providers, sending playback commands, and retrieving session state. We integrated `@amazon-devices/kepler-media-controls` 1.0.25 and `@amazon-devices/kepler-media-types` 1.0.0 with the React Native 0.83 wrapper. ARM packaging and unit tests succeed; runtime interoperability and Prime availability remain unverified.
+
+What worked: published client interfaces include endpoint package identity, advertised capabilities, play/pause/stop, sampled position, metadata lookup, and explicit client destruction. The deep-link guide documents `Linking.canOpenURL` and `openURL` for app-to-app contracts. These are materially better foundations than Fire OS-only ADB automation for this project.
+
+Suggested improvement (not a claimed SDK defect): provide a runnable media-hub sample and a simulator provider fixture showing client discovery, explicit app selection, capability checks, command acknowledgment versus observed state, metadata omissions, and resource cleanup. A simulator app/endpoint inventory would also make it easier to distinguish generic media-hub support from the availability of a particular commercial provider. We would use the API again; final runtime feedback should follow the actual simulator test.
+
 ## Amazon Vega SDK and WebView
 
 Used for packaging a React Native wrapper, rendering Hearth through WebView, and running on Amazon's official simulator. SDK 0.24.12112, CLI 1.4.4, Vega OS 1.2, WebView 4.0.2; successful rendering on the ARM simulator hosted on an AWS M4 Mac.
@@ -46,4 +54,35 @@ The combination enables playful conversation and actions without repeated wake w
 
 ## Remaining feedback inventory
 
-Before submission, add concise first-hand feedback for React Native for Vega, SVG/CSS authoring, Node/WebSocket pairing, Cloudflare preview hosting, AWS EC2/SSM simulator access, and each remaining development tool actually included in the submitted workflow. Cover purpose, what worked, what needs work, onboarding, and whether we would use it again. This draft is not yet the complete required feedback answer.
+### React Native for Vega (`@amazon-devices/react-native-kepler`)
+
+- **Purpose:** Native TV application shell hosting the Hearth WebView, hardware remote event routing (`useTVEventHandler`, `BackHandler`), splash-screen lifecycle (`usePreventHideSplashScreen`, `useHideSplashScreenCallback`), and foreground/background `AppState` transitions.
+- **What worked:** Clean lifecycle hooks and straightforward bridge injection into WebView (`injectedJavaScriptBeforeContentLoaded` and `injectJavaScript`). Unit testing under Jest with mocked native modules is fast and deterministic.
+- **What needs work:** Clearer documentation on `eventKeyAction` press/release filtering and simulator key-code normalization (`kpenter` vs `select`).
+- **Would use again:** Yes, for Vega TV shells requiring native platform bridges around rich web/canvas scenes.
+
+### Authored SVG/CSS Character Rig and Built-In HTML5 Cinema Player
+
+- **Purpose:** Render Pip's autonomous expressions, gestures, cozy/cold living room, and built-in Movie Night HTML5 video player at 1920×1080 without proprietary animation runtimes.
+- **What worked:** Zero external runtime binary dependencies inside the WebView, deterministic Playwright verification, and direct HTTP byte-range (`206 Partial Content`) film streaming with real playback position telemetry.
+- **What needs work:** Complex multi-prop animations require careful state cleanup (`actions.js`) so speech interruptions cancel pending gesture timers cleanly.
+- **Would use again:** Yes.
+
+### Node.js + WebSocket Phone Pairing and Co-Watch Bridge
+
+- **Purpose:** Let a viewer pair their phone via QR code to stream microphone PCM audio to Amazon Bedrock Nova 2 Sonic, relay captions and TV tool calls (`tv-pause`, `tv-resume`, `tv-recommend`), and keep the voice companion alive even when the TV WebView backgrounds during external app handoff.
+- **What worked:** Explicit owner-authorized bridge tokens (`crypto.timingSafeEqual`), origin validation, and wait-for-TV-acknowledgment tool responses prevent hallucinated playback state.
+- **What needs work:** Mobile browser microphone capture requires the phone tab to stay foregrounded.
+- **Would use again:** Yes.
+
+### AWS EC2 Mac Dedicated Hosts & Systems Manager (SSM) for ARM Vega Simulator
+
+- **Purpose:** Provision disposable Apple Silicon (`mac-m4.metal` / `mac2.metal`) hosts to run the official ARM64 Vega Virtual Device headlessly via SSM Session Manager port forwarding.
+- **What worked:** Zero-inbound security groups with SSM port forwarding (`19081 -> 19080`) and QMP/console framebuffer capture allow fully automated headless verification without exposing VNC.
+- **Friction — EC2 Mac first-boot EBS IOPS/throughput sensitivity:**
+  - *Task:* Boot macOS Sequoia on `mac2.metal` over EBS and wait for SSM registration.
+  - *Steps:* Override the AMI default root volume (`5000 IOPS`, `500 MiB/s` unencrypted) down to `3000 IOPS`, `125 MiB/s` with forced KMS encryption on first boot, then issue a reboot after 11 minutes when SSM has not yet registered.
+  - *Expected:* Slower boot, or clear progress telemetry in EC2 console output.
+  - *Actual:* APFS container initialization over Nitro EBS stalls and interrupting first boot with an early `RebootInstances`/`ReplaceRootVolume` leaves the instance unreachable (`StatusCheckFailed_System = 1`, `NetworkIn = 0`) until termination and host scrub.
+  - *Workaround:* Preserve the AMI's baseline `5000+ IOPS` and `500 MiB/s` throughput without forced re-encryption on snapshot hydration, omit blocking `UserData`, and allow uninterrupted first-boot completion before any recovery action.
+- **Would use again:** Yes, with high-throughput EBS settings enforced in launch templates.

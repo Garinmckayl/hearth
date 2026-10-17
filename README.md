@@ -1,14 +1,22 @@
-# Hearth — Someone’s here
+# Hearth — Your TV Has Someone In It
 
-An interactive television home for an explicitly fictional companion named Pip. Pip tends plants, watches the garden, warms up by the fire, remembers moments you choose to keep, and helps you take small steps toward real-world connection.
+Meet Pip: a playful AI entertainment companion with a home inside your television. She dances, jokes, remembers what you choose to share, and is learning to run movie night—from your viewing preferences to permissioned TV actions.
 
-## Review checkpoint — October 16, 2026
+## Movie night: Your TV Has Someone In It
 
-The prototype includes richer activities and expressions, cozy/cold quick switching, silent refresh, persistent phone pairing, and an official Vega wrapper. Start locally using the instructions below; the previous temporary Cloudflare preview is offline. Live voice requires server-side configuration, while story mode works without credentials.
+Choose **Movie night with Pip**. Pip recommends from a supplied catalog using your taste, starts an actual open film after your selection, and responds to spoken play/pause requests with measured player acknowledgments. The paired phone keeps Pip's voice connected when the TV changes apps. Progress memory is optional. Prime suggestions open confirmed searches; actual Prime playback remains a device acceptance check. See [movie-night implementation and evidence](docs/movie-night.md) and [external TV setup](docs/tv-control.md).
 
-Official ARM simulator rendering and remote selection are verified in `docs/official-simulator.md`; simulator voice and interruption are still acceptance checks, not completed claims. The disposable AWS Mac dedicated host is verified **released**; no simulator is currently running. Before building the Vega wrapper for another session, set `HEARTH_BACKEND_URL` to a working HTTPS backend rather than relying on the historical preview URL in its configuration.
+## Review checkpoint — October 17, 2026
 
-Review the home, vibe button, Something together activities, microphone pause/end controls, and memory settings first. Submission positioning and remaining gates are in `docs/submission.md`. Demo recording comes after review and remaining target checks; no footage has been recorded yet.
+A real-provider browser check passed: Bedrock recommendation → film playback → synthetic phone speech → live Nova Sonic movie pause → actual player acknowledgment → phone resume → fresh voice output after the TV background lifecycle → disconnect. Together with the verified official ARM64 Vega OS simulator captures and live Nova 2 Sonic fireside dance, the complete 98-second 1080p demo showcase is packaged in `artifacts/hearth-demo-showcase.mp4` and hosted at the showcase link below:
+
+- **Full 98s Demo Showcase & Narrative Page:** https://synthetic-searched-strength-displaying.trycloudflare.com
+- **Complete 98s Demo Video (1080p MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-demo-showcase.mp4
+- **Official ARM64 Vega Simulator Clip (MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-official-vega-simulator.mp4
+- **Movie-Night Co-Watch Clip (MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-movie-night.mp4
+- **Live TV Home & Movie Shelf:** https://order-mods-utility-velocity.trycloudflare.com/?movies=1
+
+The previous AWS simulator host is released. The newly authorized M1 host remains pending, with bounded termination/release schedules. Its worker now tests native movie playback, spoken pause, and media endpoint discovery when available. No additional host was allocated. Historical official simulator rendering evidence is in [docs/official-simulator.md](docs/official-simulator.md).
 
 ## Open the home
 
@@ -16,6 +24,7 @@ Requires Node.js 22.9 or later.
 
 ```sh
 npm install
+npm run fetch:films
 npm run dev
 ```
 
@@ -32,7 +41,7 @@ Open http://localhost:3000. Add `?tv=1` for the television layout. Use arrow key
 - Confirmed memory forgetting and full reset. New AI-generated memories require confirmation before saving.
 - Share-sheet or clipboard message preparation. Hearth never sends a message or arranges a call automatically.
 - Real-time Amazon Nova 2 Sonic speech with Tiffany (US), Amy (UK), or Olivia (AU) feminine voices, live captions, interruption, and microphone pause/end controls.
-- Phone-to-TV microphone pairing with a private QR link: voice plays in Pip’s home while a phone supplies the microphone. Unjoined QR links expire after fifteen minutes; connected pairing stays active until disconnected.
+- Phone-to-TV microphone pairing with a private QR link: the phone supplies microphone and companion audio, keeping voice alive when Hearth leaves the TV foreground. Unjoined QR links expire after fifteen minutes; co-watch rooms have a three-hour maximum and end sooner on disconnect.
 - Plant sunflowers or moonflowers, choose a branching Lantern Path story, enjoy a firefly quiet minute, and change the home’s weather.
 - Optional silent invitations after a quiet pause; remembered follow-ups take priority without interrupting voice or stealing focus. Choosing quiet suppresses invitations for that visit.
 - Pip’s fireside dance, optional original synthesized tune, waving, giggling, stretching, watering, reading, and sitting. Nova Sonic can invoke validated world actions and receives an acknowledgment from the television before claiming success; phone pairing relays actions too.

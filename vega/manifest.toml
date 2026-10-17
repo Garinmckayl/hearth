@@ -19,6 +19,9 @@ id = "/com.amazon.kepler.keplerscript_4@IKeplerScript_0"
 [[needs.module]]
 id = "/com.amazon.kepler.webview_4@IWebview_4"
 
+[[needs.module]]
+id = "/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0"
+
 
 
 [components]

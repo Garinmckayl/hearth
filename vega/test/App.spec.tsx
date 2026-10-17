@@ -10,6 +10,10 @@ let mockAppStateHandler: (state: string) => void;
 let mockTVHandler: (event: {eventType: string; eventKeyAction?: number}) => void;
 let mockBackHandler: () => boolean;
 
+jest.mock('@amazon-devices/kepler-media-controls', () => ({
+  MediaControlComponentAsync: {makeMediaControlEndpointLocator: () => ({getMediaControlEndpoints: async () => []})},
+}));
+
 jest.mock('@amazon-devices/webview', () => {
   const ReactModule = require('react');
   return {
@@ -41,9 +45,21 @@ jest.mock('@amazon-devices/react-native-kepler', () => ({
   View: 'View',
   Text: 'Text',
   Pressable: 'Pressable',
+  Linking: {canOpenURL: jest.fn(async () => false), openURL: jest.fn()},
 }));
 
 beforeEach(() => jest.clearAllMocks());
+
+test('native TV bridge rejects foreign pages and returns real discovery results to the home', async () => {
+  const view = render(<App />);
+  const webview = view.UNSAFE_getByType('WebView' as never);
+  const message = JSON.stringify({type: 'hearth:tv', id: '1', command: {action: 'status'}});
+  await act(async () => { await webview.props.onMessage({nativeEvent: {url: 'https://untrusted.example/', data: message}}); });
+  expect(mockInject).not.toHaveBeenCalled();
+  await act(async () => { await webview.props.onMessage({nativeEvent: {url: webview.props.source.uri, data: message}}); });
+  expect(mockInject).toHaveBeenCalledWith(expect.stringContaining('0 media endpoint'));
+  expect(mockInject).toHaveBeenCalledWith(expect.stringContaining('hearth:native-tv-result'));
+});
 
 test('loads the TV home with persistent storage and HTTPS-only content', () => {
   const view = render(<App />);
@@ -57,13 +73,13 @@ test('loads the TV home with persistent storage and HTTPS-only content', () => {
   expect(mockHideSplash).toHaveBeenCalled();
 });
 
-test('backgrounding stops conversation and unmount removes the listener', () => {
+test('background and foreground notify the web lifecycle and unmount removes the listener', () => {
   const view = render(<App />);
   act(() => mockAppStateHandler('background'));
   expect(mockInject).toHaveBeenCalledWith('window.hearthPause?.(); true;');
   mockInject.mockClear();
   act(() => mockAppStateHandler('active'));
-  expect(mockInject).not.toHaveBeenCalled();
+  expect(mockInject).toHaveBeenCalledWith('window.hearthResume?.(); true;');
   view.unmount();
   expect(mockRemove).toHaveBeenCalled();
 });

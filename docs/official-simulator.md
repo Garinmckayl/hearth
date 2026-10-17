@@ -1,5 +1,11 @@
 # Official simulator evidence
 
+## Native media-control integration — October 16, 2026
+
+The updated wrapper integrates Amazon's official Vega Media Controls client and app-to-app Linking, not the Fire OS-only ADB bridge. It discovers media endpoints, requires an explicit provider selection, dispatches supported play/pause/stop commands, and samples provider state/metadata. Title-specific launch URLs are empty by default; fixed Prime HTTPS home/search links also require installed-handler checks. The ARM package builds and passes VPT validation; 15 native component/unit tests pass. Browser tests use a simulated bridge, not an actual simulator.
+
+This version has **not yet executed on the official ARM simulator**. Previous screenshots below establish rendering of the earlier version, not successful media control or Prime Video availability. The authorized M1 dedicated host became available, but its instance failed startup reachability checks before SSM access. Recovery and an older-image boot-volume replacement are in progress as documented in `cloud-simulator.md`. The bounded worker will test actual open-film playback, spoken pause and endpoint discovery when remote access is restored. See `tv-control.md` for official API references and the remaining runtime gate.
+
 ## Verified ARM execution — October 13, 2026
 
 Hearth installs, launches, and visibly renders on Amazon's official ARM Vega Virtual Device, SDK 0.24.12112 / OS 1.2, on the disposable AWS M4 Mac described in `docs/cloud-simulator.md`. The simulator's own authenticated console captured the framebuffer at 1920×1080; these are not browser-preview screenshots.

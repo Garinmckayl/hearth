@@ -1,0 +1,24 @@
+{
+  "runtime": "Chromium TV and paired phone; not official Vega",
+  "mockedProviders": false,
+  "syntheticMicrophone": true,
+  "checks": [
+    "Live Bedrock recommended Big Buck Bunny for the viewer’s short woodland comedy request",
+    "The actual 596-second open film decoded and played in the TV player",
+    "Synthetic phone speech → live Nova Sonic → tv-pause → real TV player PAUSED acknowledgment",
+    "Paired phone resumed the actual film",
+    "After the TV background lifecycle, the SAME phone voice session returned fresh real model response audio",
+    "Explicit phone disconnect ended the companion session"
+  ],
+  "errors": [],
+  "recommendation": {
+    "text": "Ah, woodland comedy—right up my leafy avenue! Big Buck Bunny is a perfect ten-minute cartoon about a giant rabbit and three cheeky woodland troublemakers. It’s pure slapstick with a heartwarming vibe. You’ll love those squirrels; I have strong opinions about them!",
+    "picks": [
+      "bunny"
+    ],
+    "source": "bedrock"
+  },
+  "durationSeconds": 53.202,
+  "audioBytes": 2367360,
+  "passed": true
+}

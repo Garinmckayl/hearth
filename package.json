@@ -15,7 +15,8 @@
     "build:android": "node scripts/build-android.mjs",
     "build:vega": "node scripts/build-vega.mjs",
     "simulator": "node scripts/vega-simulator.mjs",
-    "firetv": "node scripts/firetv-device.mjs"
+    "firetv": "node scripts/firetv-device.mjs",
+    "fetch:films": "python3 scripts/fetch-films.py"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.0.0",

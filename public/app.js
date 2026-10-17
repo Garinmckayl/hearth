@@ -6,6 +6,9 @@ import { CharacterActions, validateWorldAction, WORLD_ACTIONS, ACTIVITY_ACTIONS 
 import { CompanionActivities } from './activities.js';
 import { applyAmbience } from './ambience.js';
 import { FiresideTune } from './music.js';
+import { MovieNight, TV_ACTIONS } from './movie-night.js';
+import { Cinema } from './cinema.js';
+import { FILMS, filmById } from './film-catalog.js';
 
 const element = id => document.getElementById(id);
 let storage;
@@ -42,6 +45,14 @@ let keepVoiceOnClose = false;
 let speechAllowed = false;
 let configReady;
 const backendUrl = window.HearthNative?.backendUrl() || '';
+const movieNight = new MovieNight({ backendUrl, openPanel: (kicker, html) => openPanel(kicker, html, true), mount: document.querySelector('.world'), onForget: () => { history = []; stopLiveVoice(); }, onTurn: text => liveVoice ? liveVoice.submitText(text) : phonePairing?.userText(text) || false });
+const cinema = new Cinema({backendUrl, mount:document.querySelector('.world'), openPanel:(kicker,html)=>openPanel(kicker,html,true), onTurn:text=>liveVoice?.submitText(text) || phonePairing?.userText(text), onPlayback:playback=>phonePairing?.playback(playback), onPair:()=>pairPhone('conversation',true), onTvControls:()=>movieNight.show(), onForget:()=>{history=[];stopLiveVoice();}, onClose:()=>element('cinema-button').focus(), onPrime:async (film,url)=>{
+  if (window.HearthNative?.tvControl) return window.HearthNative.tvControl(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
+  if (movieNight.token) return movieNight.request(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
+  window.open(url,'_blank','noopener');
+  return {ok:true, summary:'Requested a Prime Video search in a separate tab. Check the opened tab; availability and playback are not confirmed.'};
+}});
+function viewerContext() { const control = movieNight.context(state.remember); const watching = cinema.context(state.remember); return {...watching, ...control, catalog:[...watching.catalog,...control.catalog].slice(0,25), preferences:[watching.preferences,control.preferences].filter(Boolean).join('; '), history:[...(watching.history || []),...(control.history || [])].slice(-8), playback:watching.playback}; }
 const companionActivities = new CompanionActivities({ mount: document.querySelector('.world'), onGesture: action => performWorldAction({ action }), onTurn: text => liveVoice ? liveVoice.submitText(text) : phonePairing?.userText(text) || false });
 const panel = element('panel');
 const escapeHtml = text => String(text).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -112,7 +123,7 @@ async function speak(text) {
 function stopSpeech() {
   speechRequest?.abort();
   if (storyAudio) { storyAudio.pause(); URL.revokeObjectURL(storyAudio.src); storyAudio = null; }
-  if (window.HearthNative) window.HearthNative.stopSpeaking();
+  window.HearthNative?.stopSpeaking?.();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   pip?.classList.remove('speaking');
 }
@@ -182,11 +193,12 @@ function quiet() {
   say('It sounds like you’re missing having someone around. We can sit for a bit. Or, if you’d like, we could think of a small way to reach someone you care about.', [['Help me write to her', message], ['A little game together', room], ['Just stay with me', quietCompany]], 'thoughtful');
 }
 
-function openPanel(kicker, html) {
+function openPanel(kicker, html, preserveVoice = false) {
   companionActivities.stop();
   characterActions?.stop(); firesideTune.stop();
   clearInvitation();
-  stopLiveVoice();
+  if (preserveVoice) keepVoiceOnClose = true;
+  else stopLiveVoice();
   clearInterval(breathTimer);
   clearTimeout(idleTimer);
   recognition?.abort();
@@ -243,6 +255,7 @@ function room() {
   openPanel('SOMETHING TOGETHER', '<h2>A little time, well spent.</h2><p>A gentle game, a story we shape together, or something new in the garden.</p><div class="activity-grid"><button class="activity-tile" id="solo-game" aria-label="Play with Pip"><strong>A fireside game</strong><span>Three little questions with Pip</span></button><button class="activity-tile" id="shared-game" aria-label="Room Mode · 2 people"><strong>Room Mode · 2 people</strong><span>Pass the remote. Share the moment.</span></button><button class="activity-tile" id="story-button"><strong>The lantern path</strong><span>An unfolding story. Your choices matter.</span></button><button class="activity-tile" id="garden-button"><strong>Our little garden</strong><span>Choose a flower. Leave a little colour.</span></button><button class="activity-tile" id="breathe-button"><strong>A quieter minute</strong><span>Follow the fireflies. No conversation needed.</span></button><button class="activity-tile" id="atmosphere-button"><strong>Make it cozy</strong><span>Daylight, rain, or an evening fire</span></button></div>');
   element('solo-game').onclick = () => startGame(1);
   const danceTile = document.createElement('button'); danceTile.id = 'dance-with-pip'; danceTile.className = 'activity-tile'; danceTile.innerHTML = '<strong>Pip’s fireside shuffle</strong><span>A little dance. A little silliness.</span>'; danceTile.onclick = danceWithPip; element('solo-game').parentElement.append(danceTile);
+  const movieTile = document.createElement('button'); movieTile.id = 'movie-night'; movieTile.className = 'activity-tile'; movieTile.textContent = 'Movie night with Pip · Your taste. Her opinions.'; movieTile.onclick = () => cinema.show(); element('solo-game').parentElement.append(movieTile);
   const surpriseTile = document.createElement('button'); surpriseTile.id = 'pip-surprise'; surpriseTile.className = 'activity-tile'; surpriseTile.innerHTML = '<strong>Surprise me, Pip</strong><span>She has a few ideas of her own.</span>'; surpriseTile.onclick = surpriseWithPip; element('solo-game').parentElement.append(surpriseTile);
   for (const [action, title, description] of [['riddle', 'A little fireside riddle', 'A guess, a giggle, and no score.'], ['word-game', 'The unlikely picnic', 'Make something wonderfully ridiculous.'], ['tiny-story', 'Make a tiny story', 'A little adventure with two possibilities.'], ['connection-note', 'Send a little hello', 'Draft a note. You decide how to share.'], ['juggle', 'Pip’s woodland juggling', 'Three treasures. Questionable technique.'], ['tea', 'An imaginary cup of tea', 'A quiet, unhurried moment.']]) {
     const tile = document.createElement('button'); tile.className = 'activity-tile'; tile.dataset.activity = action;
@@ -276,6 +289,7 @@ function performWorldAction(input) {
   try {
     const { action, expression, text } = validateWorldAction({ action: input.action, ...(input.expression ? { expression: input.expression } : {}), ...(input.text !== undefined ? { text: input.text } : {}) });
     if (!pip || document.hidden) return { ok: false };
+    if (TV_ACTIONS.includes(action)) return cinema.action(action, text) || movieNight.action(action, text);
     if (applyAmbience(state, action)) {
       save(); updateClock();
       const summary = action === 'cozy' ? 'Our home turns honey-gold. A warm fire, a closed window, and nowhere to rush.' : action === 'cold' ? 'A crisp blue morning. Snow outside, an open window, and Pip’s favorite scarf.' : action === 'open-window' ? 'The window opens. A little fresh air moves through Pip’s home.' : 'The window closes. The little home feels sheltered again.';
@@ -503,14 +517,14 @@ function voiceConversation() {
     const target = new URL(`${backendUrl}/api/voice`, location.href); target.protocol = target.protocol === 'https:' ? 'wss:' : 'ws:';
     liveVoice = new RealtimeVoice({
       endpoint: target.href, voice: state.voice, mode: element('voice-mode')?.value || 'conversation',
-      context: { name: state.name, day: state.day, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } },
+      context: { name: state.name, day: state.day, viewer: viewerContext(), memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } },
       onAction: performWorldAction, onActivity: voiceActivity, onEnergy: voiceEnergy,
       onStatus: status => { if (element('live-voice-status')) element('live-voice-status').textContent = status; if (element('live-status')) element('live-status').textContent = status; },
-      onSpeaking: active => { pip?.classList.toggle('speaking', active); element('live-voice-status')?.classList.toggle('is-speaking', active); },
+      onSpeaking: active => { pip?.classList.toggle('speaking', active); document.querySelector('.cinema-pip')?.classList.toggle('is-speaking',active); if (cinema.video) cinema.video.volume=active ? .18 : 1; element('live-voice-status')?.classList.toggle('is-speaking', active); },
       onText: (role, text, final) => {
         const caption = role === 'USER' ? element('user-caption') : role === 'ASSISTANT' ? element('pip-caption') : null;
         if (caption) caption.textContent = text;
-        if (role === 'ASSISTANT') element('dialogue').textContent = text;
+        if (role === 'ASSISTANT') {element('dialogue').textContent = text; cinema.caption(text);}
         if (final && ['USER', 'ASSISTANT'].includes(role)) {
           history = [...history, { role: role.toLowerCase(), text: text.slice(0, 1500) }].slice(-12);
           if (role === 'USER') { voiceTranscript = text.slice(0, 500); if (state.remember && element('keep-voice-moment')) element('keep-voice-moment').hidden = false; }
@@ -554,25 +568,28 @@ function keepVoiceMoment() {
 
 function pairingCallbacks() {
   return { backend: backendUrl,
+    control:command=>command.action === 'providers' ? movieNight.nativeControl?.({action:'status'}) || {ok:false,summary:'This browser has no native TV media discovery. Use Connected TV app controls for a configured Fire OS bridge.'} : command.action === 'title' && filmById(command.id)?.src ? cinema.watch(filmById(command.id)) : cinema.video ? cinema.control(command.action) : movieNight.request({...command,...(movieNight.endpoint ? {endpoint:movieNight.endpoint} : {})}),
     action: performWorldAction, activity: voiceActivity, energy: voiceEnergy,
     status: message => { if (element('pair-status')) element('pair-status').textContent = message; if (element('live-status')) element('live-status').textContent = message; },
-    speaking: active => pip?.classList.toggle('speaking', active),
+    speaking: active => {pip?.classList.toggle('speaking', active);document.querySelector('.cinema-pip')?.classList.toggle('is-speaking',active);if(cinema.video)cinema.video.volume=active ? .18 : 1;},
     text: (role, text, final) => {
       if (element('pair-caption')) element('pair-caption').textContent = `${role === 'USER' ? 'You' : 'Pip'}: ${text}`;
-      if (role === 'ASSISTANT') element('dialogue').textContent = text;
+      if (role === 'ASSISTANT') {element('dialogue').textContent = text; cinema.caption(text);}
       if (final && ['USER', 'ASSISTANT'].includes(role)) history = [...history, { role: role.toLowerCase(), text: text.slice(0, 1500) }].slice(-12);
     },
     ended: () => { if (element('pair-status')) element('pair-status').textContent = 'Pairing ended. Start a new pairing from Talk with Pip.'; pip?.classList.remove('speaking'); element('live-status')?.remove(); }
   };
 }
 
-async function pairPhone(mode = 'conversation') {
+async function pairPhone(mode = 'conversation', coWatch = true) {
   openPanel('YOUR PHONE, PIP’S HOME', '<h2>Bring your voice to the television.</h2><p>Scan with your phone camera. Keep this link private: it shares the memories you have enabled for this conversation.</p><p id="pair-status" role="status">Preparing your private pairing…</p><div id="pair-link"></div><p class="privacy-note">Your phone microphone starts only with your consent. Direct mode sends audio to Amazon Bedrock; hands-free mode transcribes room audio with Amazon Transcribe and screens transcripts through Jev via OpenRouter before accepted words reach Sonic. Pip’s voice plays here. Unjoined QR links expire after fifteen minutes; connected pairing stays active until disconnected.</p><button id="pair-home" class="primary-button" hidden>Enjoy our home</button>');
   stopSpeech();
   const pairing = new PhonePairing(pairingCallbacks()); phonePairing = pairing;
   try {
-    const room = await pairing.host({ mode, name: state.name, day: state.day, voice: state.voice, memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } });
+    const room = await pairing.host({ mode, cowatch:coWatch, name: state.name, day: state.day, voice: state.voice, viewer: viewerContext(), memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } });
     if (!room || phonePairing !== pairing) return;
+    if (coWatch && movieNight.token && !movieNight.nativeControl) pairing.send({type:'delegate-tv',token:movieNight.token});
+    if (coWatch) {element('panel-kicker').textContent = 'YOUR MOVIE COMPANION'; document.querySelector('#panel-content .privacy-note').textContent = 'Pip’s voice plays on your phone so the conversation can continue when the TV changes apps. Keep the phone page open. Starting its microphone sends speech to the configured voice services. TV controls require an active Hearth player or an authorized remote bridge.';}
     element('pair-link').innerHTML = `<img width="220" height="220" src="${escapeHtml(room.qr)}" alt="Scan to connect your phone"><p><a href="${escapeHtml(room.joinUrl)}" target="_blank" rel="noopener">Open phone microphone</a></p>`;
     element('pair-status').textContent = 'Waiting for your phone…';
     element('pair-home').hidden = false;
@@ -586,8 +603,21 @@ async function pairPhone(mode = 'conversation') {
 }
 
 function joinPhone(token) {
-  openPanel('PIP’S PHONE MICROPHONE', '<h2>Your voice. Their little home.</h2><p>Keep this phone near you. Pip’s voice plays on the television. Headphones connected to the TV can help avoid an echo.</p><p id="pair-status" role="status">Connecting to your television…</p><p id="pair-caption" aria-live="polite"></p><div class="panel-actions"><button id="phone-start" class="primary-button">Start microphone</button><button id="phone-mute" class="subtle-button" hidden>Pause microphone</button><button id="phone-end" class="subtle-button">End connection</button></div><p class="privacy-note">Starting sends microphone audio and the TV’s enabled conversation context to Amazon Bedrock. Hearth does not record your audio. Closing this screen stops the microphone.</p>');
+  openPanel('PIP’S PHONE MICROPHONE', '<h2>Your voice. Their little home.</h2><p id="phone-output">Keep this phone near you. Pip’s voice plays on the television.</p><p id="pair-status" role="status">Connecting to your television…</p><p id="pair-caption" aria-live="polite"></p><div class="panel-actions"><button id="phone-start" class="primary-button">Start microphone</button><button id="phone-mute" class="subtle-button" hidden>Pause microphone</button><button id="phone-end" class="subtle-button">End connection</button></div><div id="phone-watch" hidden><h3>Our movie night</h3><p id="phone-playback" role="status"></p><div class="panel-actions"><button id="phone-pause" class="subtle-button">Pause TV</button><button id="phone-play" class="subtle-button">Resume TV</button><button id="phone-return" class="subtle-button">Return to Hearth</button></div><p id="phone-control-result" role="status"></p><form id="phone-text-form"><label class="field">Say something to Pip<input id="phone-text" maxlength="500" placeholder="What did you think of that?"></label><button type="submit" class="subtle-button">Tell Pip</button></form></div><p class="privacy-note">Starting sends microphone audio and the TV’s enabled conversation context to Amazon Bedrock. Hearth does not record your audio. Closing this screen stops the microphone.</p>');
   const pairing = new PhonePairing(pairingCallbacks()); phonePairing = pairing; pairing.connect(token);
+  pairing.onContext = context => {
+    if (!context.cowatch) return;
+    element('phone-watch').hidden = false; element('phone-output').textContent = 'Pip’s voice plays on this phone and stays here while another TV app is open. Keep this page open.';
+    const shelf = document.createElement('div');shelf.className='panel-actions';shelf.id='phone-film-shelf';
+    for (const film of FILMS.filter(item=>item.src)) {const button=document.createElement('button');button.className='subtle-button';button.dataset.film=film.id;button.textContent=`Play ${film.title} on TV`;button.onclick=async()=>{const reply=await pairing.requestControl({action:'title',id:film.id});element('phone-control-result').textContent=reply.summary;};shelf.append(button);}
+    element('phone-watch').append(shelf);
+    const state=document.createElement('p');state.id='phone-tv-state';state.textContent='TV companion connected. Pip’s audio stays on this phone.';element('phone-watch').prepend(state);
+    const discover=document.createElement('button');discover.id='phone-discover';discover.className='subtle-button';discover.textContent='Discover TV media apps';discover.onclick=async()=>{const reply=await pairing.requestControl({action:'providers'});element('phone-control-result').textContent=reply.summary+(reply.endpoints?.length ? ' '+reply.endpoints.map(e=>e.packageId).join(', ') : '');};element('phone-watch').append(discover);
+  };
+  pairing.onHostState = active => {if (element('phone-tv-state')) element('phone-tv-state').textContent=active ? 'TV companion connected. Pip’s audio stays on this phone.' : 'TV companion is in the background. Pip stays with you on this phone.';};
+  pairing.onPlayback = playback => { if (element('phone-playback')) element('phone-playback').textContent = playback ? `${playback.title} · ${playback.status} · ${Math.floor(playback.positionSeconds / 60)}:${String(playback.positionSeconds % 60).padStart(2,'0')}` : 'No current player telemetry. Prime progress is available only if its provider reports it.'; };
+  for (const action of ['pause','play','return']) element(`phone-${action}`).onclick = async () => { const result = await pairing.requestControl({action}); element('phone-control-result').textContent = result.summary; };
+  element('phone-text-form').onsubmit = event => { event.preventDefault(); const input = element('phone-text'); pairing.voice?.submitText(input.value); input.value = ''; };
   const consent = document.createElement('p'); consent.className = 'privacy-note'; consent.textContent = 'For a hands-free pairing, ambient audio goes to Amazon Transcribe and transcripts go to Jev through OpenRouter—even when Pip stays quiet. Accepted turns go to Nova Sonic. Starting the microphone consents to this processing. Keep this page foregrounded; mute or end at any time. Connected pairing stays on until you end it or disconnect.'; element('panel-content').append(consent);
   pairing.microphoneEnded = () => { if (element('phone-start')) { element('phone-start').hidden = false; element('phone-mute').hidden = true; } };
   element('phone-start').onclick = async () => {
@@ -673,6 +703,7 @@ function updateClock() {
 }
 
 element('home-button').onclick = home;
+element('cinema-button').onclick = () => cinema.show();
 element('vibe-switch').onclick = () => { performWorldAction({ action: state.vibe === 'cozy' ? 'cold' : 'cozy' }); };
 element('memories-button').onclick = memories;
 element('room-button').onclick = room;
@@ -692,12 +723,13 @@ element('fullscreen-button').onclick = async () => {
 document.addEventListener('keydown', event => {
   const active = document.activeElement;
   if ((event.key === 'Escape' || event.key === 'BrowserBack') && panel.open) { event.preventDefault(); closePanel(); return; }
+  if ((event.key === 'Escape' || event.key === 'BrowserBack') && cinema.stage) { event.preventDefault(); cinema.close(); return; }
   if ((event.key === 'Escape' || event.key === 'BrowserBack') && window.HearthNative?.exit) { event.preventDefault(); window.HearthNative.exit(); return; }
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) return;
   if (event.key === 'Enter' && active === document.body) { event.preventDefault(); talk(); return; }
   if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
   event.preventDefault();
-  const scope = panel.open ? panel : document;
+  const scope = panel.open ? panel : cinema.stage || document;
   const buttons = [...scope.querySelectorAll('button:not(:disabled),a[href],input,textarea,select')].filter(button => button.getClientRects().length && !button.hidden && (panel.open || !panel.contains(button)));
   if (!buttons.includes(active)) { buttons[0]?.focus(); return; }
   const current = active.getBoundingClientRect();
@@ -717,22 +749,29 @@ document.addEventListener('keydown', event => {
 });
 
 window.hearthRemote = key => {
-  if (key === 'Back') { if (panel.open) { closePanel(); return; } window.HearthNative?.exit(); return; }
+  if (key === 'Back') { if (panel.open) { closePanel(); return; } if (cinema.stage) {cinema.close();return;} window.HearthNative?.exit(); return; }
   if (key === 'Enter') {
     const active = document.activeElement;
     if (active === document.body) { talk(); return; }
-    if (active instanceof HTMLInputElement && active.type === 'checkbox') { active.checked = !active.checked; return; }
+    if (active instanceof HTMLInputElement && active.type === 'checkbox') { active.click(); return; }
     if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) { active.focus(); window.HearthNative?.showKeyboard(); return; }
     active?.click(); return;
   }
   document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
 };
 
+function suspendHome() {
+  clearTimeout(idleTimer); clearInvitation(); characterActions?.stop(); firesideTune.stop(); recognition?.abort(); stopSpeech();
+  if (phonePairing?.isHost && phonePairing.coWatch) { phonePairing.suspend(); liveVoice?.stop(); liveVoice=null; }
+  else stopLiveVoice();
+  cinema.video?.pause(); clearInterval(breathTimer); requestController?.abort();
+}
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { clearTimeout(idleTimer); clearInvitation(); characterActions?.stop(); firesideTune.stop(); recognition?.abort(); stopSpeech(); stopLiveVoice(); clearInterval(breathTimer); requestController?.abort(); }
-  else { updateClock(); scheduleIdle(); scheduleInvitation(); }
+  if (document.hidden) suspendHome();
+  else { phonePairing?.resume(); updateClock(); scheduleIdle(); scheduleInvitation(); }
 });
-window.hearthPause = () => { clearTimeout(idleTimer); clearInvitation(); characterActions?.stop(); firesideTune.stop(); recognition?.abort(); stopSpeech(); stopLiveVoice(); clearInterval(breathTimer); requestController?.abort(); };
+window.hearthPause = suspendHome;
+window.hearthResume = () => phonePairing?.resume();
 
 for (const eventName of ['pointerdown', 'keydown']) document.addEventListener(eventName, () => { speechAllowed = true; if (!element('pip-invitation')) scheduleInvitation(); }, { passive: true, capture: true });
 
@@ -752,5 +791,6 @@ async function initialise() {
   home();
   const joinToken = new URLSearchParams(location.search).get('join');
   if (joinToken && /^[a-f0-9-]{36}$/.test(joinToken)) joinPhone(joinToken);
+  else if (new URLSearchParams(location.search).has('movies')) cinema.show();
 }
 initialise();

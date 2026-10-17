@@ -2,7 +2,9 @@
 
 ## Positioning
 
-**Hearth — Someone’s here.** A persistent, interactive television home that gives an older adult a little company and supports small connections with the people they care about. The interaction is designed around silence, remote control, memory, and a world that visibly changes with a relationship.
+**Hearth — Your TV Has Someone In It.** Meet Pip: a playful AI entertainment companion who remembers your taste, makes you laugh, and helps run movie night. The audience is anyone who enjoys television—not an age-specific care product.
+
+The October 16 pivot adds Movie night, persisted viewing preferences and reactions, catalog-grounded voice recommendations, and permissioned TV control requests. The native Vega wrapper now uses Amazon's official Media Controls client for cross-app endpoint discovery, supported playback commands, and sampled provider state, plus approved app-to-app Linking. This integration builds and passes tests but is **not yet runtime-verified**; Prime Video availability in the simulator is unknown. An opt-in Fire OS ADB developer adapter remains separate. Do not claim automatic Prime watch-history access or background watch-along. See `tv-control.md` for the exact boundary. Earlier story-demo sections below describe existing functionality, not the revised hero demo.
 
 ## Verified requirements
 
@@ -16,11 +18,11 @@ Judging covers technical implementation, design, potential impact, and quality o
 
 | Time | What to show | What it proves |
 | --- | --- | --- |
-| 0–15s | Fire TV launch; Pip blinks, moves, and tends the fern. Select a reply with the physical remote. | A living home and a TV interaction model. |
-| 15–30s | Tell Pip about the recital. Advance the demo day and show its follow-up. | Persistence across visits, not an isolated prompt. |
-| 30–45s | “She was wonderful”; show the drawing appearing. “The house feels quiet”; show Pip’s thoughtful response. | Choices affect character behavior and the world. |
-| 45–60s | Prepare the note; show that sharing remains user-controlled. | Connection beyond the television. |
-| 60–75s | Confirm an arranged call only if demonstrating that user action; advance the day and show the appropriate follow-up. | Continuity without claiming an unperformed action. |
+| 0–15s | Launch Hearth on TV; Pip blinks, moves, and greets the room. Pair a phone via the TV QR code. | A living TV home with zero-friction phone companion pairing. |
+| 15–30s | Ask Pip for a movie recommendation (e.g., a short woodland comedy). Pip recommends *Big Buck Bunny* using catalog-grounded Bedrock Nova 2 Lite. | Grounded recommendations tailored to viewer taste without hallucinated titles. |
+| 30–45s | Start *Big Buck Bunny* in the built-in TV cinema player (or discover native Vega Media Controls endpoints / Prime Video handoff). Speak into the paired phone to ask Pip to pause. | Live Amazon Nova 2 Sonic voice tool call (`tv-pause`) waits for actual TV player `PAUSED` acknowledgment. |
+| 45–60s | Resume playback from the paired phone and show co-watch survival when the TV app backgrounds or switches to an external player. | Phone voice session stays alive across TV lifecycle changes and continues returning live Nova Sonic audio. |
+| 60–75s | Save an explicit movie reaction/preference, switch the room vibe (cozy/cold), and disconnect cleanly. | Persistent explicit taste memory and full user control over microphone and session state. |
 
 The guided demo is explicitly scripted. If demonstrating live AI, enable the configured Bedrock connection and show a free-form input separately. Do not represent scripted story replies as generated responses, synthetic time jumps as background activity, or a prepared note as a sent message.
 
@@ -60,11 +62,11 @@ Repository access is a submission requirement: either public with an open-source
 
 ### Elevator pitch
 
-Hearth turns the television into a little home shared with Pip: a playful AI companion who moves, listens, remembers with permission, and makes everyday moments more entertaining.
+What if your television had someone living inside it? Someone who remembers what you love, makes you laugh, dances when you ask, and helps find something worth watching. Meet Pip. Hearth turns television from a screen you browse into a home you share—with permissioned TV actions being developed to help her run movie night.
 
 ### Inspiration
 
-Televisions already belong in the living room. We wanted to turn that familiar screen into something participatory: not another menu, chatbot, or clinical assistant, but a character you can laugh with. Early informal family use made the idea tangible: the builder's grandmother reportedly spent three hours with Pip. That is motivation to keep testing, not proof of a health benefit.
+Television has endless content, but choosing what to watch can feel like work. We wanted an entertaining character who learns your taste and helps turn browsing into a shared ritual—not another recommendation grid or a chatbot wearing a face. Early informal family use made Pip's personality tangible: the builder's grandmother reportedly spent three hours with her. That is motivation to keep testing, not proof of a health benefit or cross-app reliability.
 
 ### What it does
 

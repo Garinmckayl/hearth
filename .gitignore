@@ -1,4 +1,5 @@
 node_modules/
+data/
 dist/
 .env
 .env.*
@@ -16,3 +17,9 @@ vega/.tmp/
 vega/buildinfo.json
 vega/CMakeUserPresets.json
 artifacts/*.vpkg
+artifacts/*-raw/
+artifacts/*.webm
+artifacts/*.pcm
+artifacts/simulator-*.json
+
+public/media/*.mp4
