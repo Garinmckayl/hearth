@@ -23,3 +23,8 @@ artifacts/*.pcm
 artifacts/simulator-*.json
 
 public/media/*.mp4
+.hyperframes/
+videos/**/.hyperframes/
+videos/**/snapshots/
+videos/**/assets/*.mp4
+videos/**/assets/*.wav

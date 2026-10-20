@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Hearth: Movie Night with Pip — 3-Minute Master Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #120c09;
+        color: #f8efe6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #120c09;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+      .full-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #120c09;
+      }
+      .top-hud {
+        position: absolute;
+        top: 28px;
+        left: 44px;
+        right: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        pointer-events: none;
+        z-index: 20;
+      }
+      .hud-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        background: rgba(19, 13, 9, 0.88);
+        border: 1px solid rgba(245, 185, 99, 0.45);
+        color: #f8efe6;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      }
+      .hud-pill .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #f5b963;
+      }
+      .hud-pill .dot.green {
+        background: #5eead4;
+      }
+      .hud-tag {
+        color: #f5b963;
+        text-transform: uppercase;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+      }
+      .lower-third {
+        position: absolute;
+        left: 48px;
+        bottom: 36px;
+        max-width: 1240px;
+        padding: 20px 28px;
+        border-radius: 18px;
+        background: rgba(18, 12, 9, 0.9);
+        border: 1px solid rgba(245, 185, 99, 0.42);
+        box-shadow: 0 22px 54px rgba(0, 0, 0, 0.7);
+        z-index: 20;
+      }
+      .lower-third .kicker {
+        color: #f5b963;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .lower-third h2 {
+        font-size: 28px;
+        line-height: 1.2;
+        color: #fffaf3;
+        margin-bottom: 6px;
+      }
+      .lower-third p {
+        font-size: 18px;
+        line-height: 1.45;
+        color: #dfd1c3;
+      }
+      .sonic-voice-banner {
+        position: absolute;
+        right: 48px;
+        bottom: 36px;
+        width: 540px;
+        padding: 18px 22px;
+        border-radius: 18px;
+        background: rgba(27, 19, 13, 0.94);
+        border: 2px solid #f5b963;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+        z-index: 25;
+      }
+      .sonic-voice-banner .head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .sonic-voice-banner .badge {
+        color: #18100a;
+        background: #f5b963;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .sonic-voice-banner .hz {
+        color: #5eead4;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .sonic-voice-banner blockquote {
+        font-size: 17px;
+        line-height: 1.42;
+        color: #fff8ef;
+        font-style: italic;
+      }
+      .split-stage {
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 25% 20%, #2f1e14 0%, #120c09 75%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 92px 56px 140px;
+        gap: 36px;
+      }
+      .tv-card {
+        width: 1180px;
+        height: 664px;
+        border-radius: 22px;
+        overflow: hidden;
+        border: 3px solid #573e2d;
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.72);
+        background: #18110c;
+        flex-shrink: 0;
+      }
+      .tv-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .phone-card {
+        width: 560px;
+        height: 760px;
+        border-radius: 34px;
+        overflow: hidden;
+        border: 5px solid #f5b963;
+        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8);
+        background: #261d16;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .phone-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 24px;
+      }
+      .arch-stage {
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 50% 15%, #2b1d14 0%, #100b08 80%);
+        padding: 96px 64px 56px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .arch-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-top: 20px;
+      }
+      .arch-box {
+        background: rgba(31, 22, 16, 0.94);
+        border: 2px solid #4d3728;
+        border-radius: 20px;
+        padding: 26px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .arch-box.highlight {
+        border-color: #f5b963;
+        background: rgba(45, 31, 21, 0.96);
+      }
+      .arch-box .step {
+        color: #f5b963;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .arch-box h3 {
+        font-size: 24px;
+        color: #fff8ef;
+        line-height: 1.25;
+      }
+      .arch-box p {
+        font-size: 16px;
+        color: #d7c7b8;
+        line-height: 1.48;
+      }
+      .arch-pill-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: auto;
+      }
+      .arch-pill {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: rgba(245, 185, 99, 0.14);
+        border: 1px solid rgba(245, 185, 99, 0.38);
+        color: #f5b963;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="180"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- ===================================================================== -->
+      <!-- TRACK 0: VIDEO CLIPS (Directly under #root, no nested timed parents) -->
+      <!-- ===================================================================== -->
+
+      <video
+        id="vid-act1-home"
+        class="clip full-video"
+        src="assets/hearth-memory-continuity.mp4"
+        playsinline
+        muted
+        data-start="7"
+        data-duration="14.8"
+        data-media-start="0"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act2-memories"
+        class="clip full-video"
+        src="assets/hearth-memory-continuity.mp4"
+        playsinline
+        muted
+        data-start="24"
+        data-duration="14.8"
+        data-media-start="0"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act3-ask"
+        class="clip full-video"
+        src="assets/hearth-phone-pick.mp4"
+        playsinline
+        muted
+        data-start="57"
+        data-duration="9.2"
+        data-media-start="0"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act4-dance"
+        class="clip full-video"
+        src="assets/hearth-browser-smoke.mp4"
+        playsinline
+        muted
+        data-start="79"
+        data-duration="23"
+        data-media-start="0"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act5-cinema"
+        class="clip full-video"
+        src="assets/hearth-movie-night.mp4"
+        playsinline
+        muted
+        data-start="102"
+        data-duration="24"
+        data-media-start="13"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act5-cowatch"
+        class="clip full-video"
+        src="assets/hearth-movie-night.mp4"
+        playsinline
+        muted
+        data-start="126"
+        data-duration="16"
+        data-media-start="34"
+        data-track-index="0"
+      ></video>
+
+      <video
+        id="vid-act6-vega"
+        class="clip full-video"
+        src="assets/hearth-official-vega-simulator.mp4"
+        playsinline
+        muted
+        data-start="142"
+        data-duration="17"
+        data-media-start="0"
+        data-track-index="0"
+      ></video>
+
+      <!-- ===================================================================== -->
+      <!-- TRACK 1: VISUAL SCENES, SPLIT SCREENS & HUD OVERLAYS                  -->
+      <!-- ===================================================================== -->
+
+      <section id="scene-act1-hook" class="clip" data-start="0" data-duration="7" data-track-index="1">
+        <img
+          src="assets/openrouter-cozy-livingroom.png"
+          alt="Cozy Living Room"
+          style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.68);"
+        />
+        <div
+          id="act1-hook-card"
+          style="
+            position: absolute;
+            left: 88px;
+            top: 180px;
+            max-width: 1080px;
+            padding: 44px 52px;
+            border-radius: 26px;
+            background: rgba(18, 12, 9, 0.88);
+            border: 2px solid rgba(245, 185, 99, 0.55);
+            box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8);
+          "
+        >
+          <div style="color: #f5b963; font-size: 16px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 14px;">
+            AMAZON DEVELOPER HACKATHON 2026 · FIRE TV &amp; VEGA OS TRACK
+          </div>
+          <h1 style="font-size: 62px; line-height: 1.1; color: #fffaf3; margin-bottom: 18px;">
+            Hearth: Movie Night with Pip
+          </h1>
+          <p style="font-size: 28px; line-height: 1.4; color: #e4d5c7; margin-bottom: 24px;">
+            Modern television has 10,000 tiles — yet choosing what to watch still feels lonely.
+            Hearth is the cozy Fire TV living room, and <strong style="color: #f5b963;">Pip</strong> is the AI companion living inside it.
+          </p>
+          <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+            <span class="hud-pill"><span class="dot"></span>Amazon Bedrock Nova 2 Sonic (24 kHz Live Voice)</span>
+            <span class="hud-pill"><span class="dot green"></span>Vega OS ARM64 Native (.vpkg)</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-act1-home-still" class="clip" data-start="21.8" data-duration="2.2" data-track-index="1">
+        <img src="assets/hearth-memory-home.png" alt="Hearth Home" class="full-video" />
+      </section>
+
+      <section id="scene-act1-hud" class="clip" data-start="7" data-duration="17" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot"></span>ACT 1 · COZY LIVING ROOM PRESENCE (`com.hearth.tv.main`)</div>
+          <div class="hud-pill"><span class="hud-tag">10-Foot Fire TV UI · Cozy &amp; Cold Ambience</span></div>
+        </div>
+        <div class="lower-third" id="act1-lower">
+          <div class="kicker">A Living Room That Breathes With You</div>
+          <h2>Hearth is the place · Pip is the companion</h2>
+          <p>Pip tends the fern, warms up by the fire, and welcomes you home without endless menus or pressure.</p>
+        </div>
+      </section>
+
+      <section id="scene-act1-sonic" class="clip" data-start="15.6" data-duration="8.2" data-track-index="3">
+        <div class="sonic-voice-banner" id="act1-sonic-card">
+          <div class="head">
+            <span class="badge">LIVE PIP VOICE · AMAZON NOVA 2 SONIC</span>
+            <span class="hz">24 kHz PCM STREAM</span>
+          </div>
+          <blockquote>
+            “Hello, Garin. I was just giving the fern a little water and warming up our fire. Come sit with me — there is nowhere we need to rush tonight.”
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="scene-act2-speaking-still" class="clip" data-start="38.8" data-duration="18.2" data-track-index="1">
+        <img src="assets/hearth-memory-speaking.png" alt="Pip recalling past shows and recital" class="full-video" />
+      </section>
+
+      <section id="scene-act2-hud" class="clip" data-start="24" data-duration="33" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot"></span>ACT 2 · PERSISTENT CONTINUITY &amp; PAST SHOW MEMORY</div>
+          <div class="hud-pill"><span class="hud-tag">Day 3 Together · Recital Wall Drawing · Watch History</span></div>
+        </div>
+        <div class="lower-third" id="act2-lower">
+          <div class="kicker">Memory With Permission (`hearth.home.v1` + `hearth.cinema.v1`)</div>
+          <h2>Pip Remembers Your Life &amp; Past Movie Nights</h2>
+          <p>Recalls your granddaughter’s recital (adding a drawing to the wall) and remembers watching Sintel &amp; pausing Tears of Steel at 6:20.</p>
+        </div>
+      </section>
+
+      <section id="scene-act2-sonic" class="clip" data-start="36.0" data-duration="20.8" data-track-index="3">
+        <div class="sonic-voice-banner" id="act2-sonic-card" style="width: 580px;">
+          <div class="head">
+            <span class="badge">PIP RECALLING PAST SHOWS · NOVA 2 SONIC</span>
+            <span class="hz">24 kHz LIVE AUDIO</span>
+          </div>
+          <blockquote>
+            “I do remember, Garin. We watched Sintel together and you mentioned loving the baby dragon. We even paused Tears of Steel at 6:20, didn’t we? And your granddaughter’s recital was wonderful — it inspired a drawing that now lives in my home.”
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="scene-act3-split" class="clip" data-start="66.2" data-duration="12.8" data-track-index="1">
+        <div class="split-stage">
+          <div class="tv-card" id="act3-tv-card">
+            <img src="assets/hearth-tv-pick-chosen.png" alt="TV Movie Night Shelf with Pip's Pick" />
+          </div>
+          <div class="phone-card" id="act3-phone-card">
+            <img src="assets/hearth-phone-pick-received.png" alt="Phone receiving Pip's Pick Card" />
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-act3-hud" class="clip" data-start="57" data-duration="22" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot"></span>ACT 3 · CHOOSING MOVIES &amp; PUSHING TONIGHT’S PICK TO PHONE</div>
+          <div class="hud-pill"><span class="hud-tag">TV Shelf + Instant Phone Pick Card (`movie-pick` WS)</span></div>
+        </div>
+        <div class="lower-third" id="act3-lower">
+          <div class="kicker">Grounded Recommendations + Instant Phone Push</div>
+          <h2>Pip Chooses Tonight’s Film &amp; Sends the Pick Card to Your Phone</h2>
+          <p>Narrows the TV shelf to Big Buck Bunny (Open Film) &amp; Paddington (Prime Video) while pushing one-tap launch actions to your phone.</p>
+        </div>
+      </section>
+
+      <section id="scene-act3-sonic" class="clip" data-start="69.0" data-duration="9.5" data-track-index="3">
+        <div class="sonic-voice-banner" id="act3-sonic-card">
+          <div class="head">
+            <span class="badge">PIP’S SPOKEN PICK · NOVA 2 SONIC</span>
+            <span class="hz">SENT TO TV + PHONE</span>
+          </div>
+          <blockquote>
+            “Let’s watch Big Buck Bunny tonight. It’s a ten-minute woodland comedy with a gentle giant rabbit and playful creatures— perfectly short, funny, and cozy.”
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="scene-act4-hud" class="clip" data-start="79" data-duration="23" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot"></span>ACT 4 · PHONE ↔ TV BIDIRECTIONAL VOICE &amp; FIRESIDE DANCE</div>
+          <div class="hud-pill"><span class="hud-tag">Tool Use: `perform_world_action(action="dance")`</span></div>
+        </div>
+        <div class="lower-third" id="act4-lower">
+          <div class="kicker">Acknowledged World Actions Over Bidirectional Stream</div>
+          <h2>Ask Pip to Dance — Spoken Request Triggers Live Choreography</h2>
+          <p>Nova 2 Sonic invokes `perform_world_action`, waits for `[TV acknowledgment]` from the living room, and dances by the fire.</p>
+        </div>
+      </section>
+
+      <section id="scene-act4-sonic" class="clip" data-start="91.2" data-duration="10.4" data-track-index="3">
+        <div class="sonic-voice-banner" id="act4-sonic-card">
+          <div class="head">
+            <span class="badge">LIVE BIDIRECTIONAL VOICE + TOOL CALL</span>
+            <span class="hz">TV ACK VERIFIED</span>
+          </div>
+          <blockquote>
+            Viewer: “Can you do a little dance for me by the fire?” — Pip invokes `dance` tool on the TV and replies in live 24 kHz Nova 2 Sonic audio.
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="scene-act5-phone-pip" class="clip" data-start="112" data-duration="29.5" data-track-index="1">
+        <div
+          id="act5-phone-overlay"
+          style="
+            position: absolute;
+            right: 48px;
+            top: 96px;
+            width: 390px;
+            height: 620px;
+            border-radius: 28px;
+            overflow: hidden;
+            border: 4px solid #f5b963;
+            background: #261d16;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.82);
+            padding: 8px;
+            z-index: 18;
+          "
+        >
+          <img
+            src="assets/hearth-phone-cowatch.png"
+            alt="Paired Phone Co-Watch Remote"
+            style="width: 100%; height: 100%; object-fit: contain; border-radius: 20px;"
+          />
+        </div>
+      </section>
+
+      <section id="scene-act5-hud" class="clip" data-start="102" data-duration="40" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot"></span>ACT 5 · WATCHING TOGETHER · SPOKEN PAUSE &amp; CO-WATCH SURVIVAL</div>
+          <div class="hud-pill"><span class="hud-tag">HTTP 206 Cinema + Phone `tv-pause` + Background Survival</span></div>
+        </div>
+        <div class="lower-third" id="act5-lower">
+          <div class="kicker">Real Playback Telemetry &amp; Second-Screen Survival</div>
+          <h2>Speak Into Your Phone to Pause the TV — Or Keep Talking in Prime Video</h2>
+          <p>Spoken phone command triggers `tv-pause` with verified `PAUSED` telemetry; when the TV switches apps, Pip stays alive on your phone.</p>
+        </div>
+      </section>
+
+      <section id="scene-act5-sonic" class="clip" data-start="114.6" data-duration="10.8" data-track-index="3">
+        <div class="sonic-voice-banner" id="act5-sonic-card">
+          <div class="head">
+            <span class="badge">SPOKEN PHONE COMMAND · `tv-pause`</span>
+            <span class="hz">BIG BUCK BUNNY · PAUSED</span>
+          </div>
+          <blockquote>
+            Viewer speaks into phone: “Pip, pause the movie for a second.” — TV player pauses at 0:08 and returns verified `PAUSED` telemetry before Pip answers.
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="scene-act6-hud" class="clip" data-start="142" data-duration="17" data-track-index="2">
+        <div class="top-hud">
+          <div class="hud-pill"><span class="dot green"></span>ACT 6 · OFFICIAL ARM64 VEGA OS SIMULATOR (`hearth-vega-aarch64.vpkg`)</div>
+          <div class="hud-pill"><span class="hud-tag">Vega SDK 0.24.12112 · Kepler Media Controls &amp; WebView</span></div>
+        </div>
+        <div class="lower-third" id="act6-lower">
+          <div class="kicker">Validated on Official ARM64 Vega Virtual Device</div>
+          <h2>Native 1080p Fire TV / Vega OS Package (`com.hearth.tv.main`)</h2>
+          <p>D-pad directional focus, `kpenter` remote selection, Cold ↔ Cozy atmospheric transitions, and `@amazon-devices/kepler-media-controls`.</p>
+        </div>
+      </section>
+
+      <section id="scene-act7-arch" class="clip" data-start="159" data-duration="14" data-track-index="1">
+        <div class="arch-stage">
+          <div>
+            <div style="color: #f5b963; font-size: 15px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px;">
+              ACT 7 · SYSTEM ARCHITECTURE &amp; AWS AI PIPELINE
+            </div>
+            <h2 style="font-size: 46px; color: #fffaf3; margin-bottom: 8px;">
+              Dual-Surface Fire TV + Paired Phone + Amazon Bedrock Nova 2 Sonic
+            </h2>
+            <p style="font-size: 20px; color: #d7c7b8;">
+              Every world gesture and TV playback action is schema-validated (`lib/sonic.mjs`) and waits for real television acknowledgment.
+            </p>
+          </div>
+
+          <div class="arch-grid" id="arch-cards">
+            <div class="arch-box">
+              <div class="step">01 · 10-FOOT TV HOST</div>
+              <h3>Fire TV &amp; Vega OS App</h3>
+              <p>1920×1080 living room SVG stage, D-pad spatial navigation, HTTP 206 Hearth Cinema player, and Prime Video deep-link handoff.</p>
+              <div class="arch-pill-list">
+                <span class="arch-pill">@amazon-devices/webview</span>
+                <span class="arch-pill">kepler-media-controls</span>
+                <span class="arch-pill">hearth-vega-aarch64.vpkg</span>
+              </div>
+            </div>
+
+            <div class="arch-box">
+              <div class="step">02 · SECOND SCREEN</div>
+              <h3>QR-Paired Phone</h3>
+              <p>Streams 16 kHz mono PCM from phone mic, receives pushed Movie Night pick cards, controls TV playback, and survives TV app switches.</p>
+              <div class="arch-pill-list">
+                <span class="arch-pill">16 kHz WebAudio PCM</span>
+                <span class="arch-pill">Instant Movie Pick Push</span>
+                <span class="arch-pill">Co-Watch Remote</span>
+              </div>
+            </div>
+
+            <div class="arch-box">
+              <div class="step">03 · REALTIME BROKER</div>
+              <h3>Node.js Room &amp; Voice Server</h3>
+              <p>Manages private QR pairing tokens, routes `tv-command` and `movie-pick` events, and enforces strict tool-use whitelists.</p>
+              <div class="arch-pill-list">
+                <span class="arch-pill">lib/rooms.mjs</span>
+                <span class="arch-pill">lib/sonic.mjs</span>
+                <span class="arch-pill">lib/movie-night.mjs</span>
+              </div>
+            </div>
+
+            <div class="arch-box highlight">
+              <div class="step">04 · AMAZON BEDROCK &amp; AI</div>
+              <h3>Nova 2 Sonic + Nova 2 Lite</h3>
+              <p>Bidirectional 24 kHz speech-to-speech with tool use (`perform_world_action`), grounded movie ranking, and hands-free attention gating.</p>
+              <div class="arch-pill-list">
+                <span class="arch-pill">amazon.nova-2-sonic-v1:0</span>
+                <span class="arch-pill">amazon.nova-2-lite-v1:0</span>
+                <span class="arch-pill">Amazon Transcribe</span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              padding: 18px 26px;
+              border-radius: 16px;
+              background: rgba(245, 185, 99, 0.12);
+              border: 1px solid rgba(245, 185, 99, 0.45);
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              font-size: 17px;
+              color: #f8efe6;
+            "
+          >
+            <span><strong>Closed-Loop Tool Protocol:</strong> Phone/TV Speech → Nova 2 Sonic `toolUse` → TV Execution → `[TV acknowledgment]` → Spoken Reply</span>
+            <span style="color: #5eead4; font-weight: 700;">47/47 Automated Tests Passing</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="scene-act8-finale" class="clip" data-start="173" data-duration="7" data-track-index="1">
+        <img
+          src="assets/openrouter-cozy-livingroom.png"
+          alt="Hearth Finale Background"
+          style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.45);"
+        />
+        <div
+          id="act8-card"
+          style="
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px;
+          "
+        >
+          <div
+            style="
+              padding: 8px 20px;
+              border-radius: 999px;
+              background: rgba(245, 185, 99, 0.16);
+              border: 1px solid #f5b963;
+              color: #f5b963;
+              font-size: 15px;
+              font-weight: 800;
+              letter-spacing: 0.14em;
+              text-transform: uppercase;
+              margin-bottom: 20px;
+            "
+          >
+            AMAZON DEVELOPER HACKATHON 2026 · FIRE TV &amp; AWS BUILDER
+          </div>
+          <h1 style="font-size: 74px; line-height: 1.08; color: #fffaf3; margin-bottom: 16px;">
+            Hearth: Movie Night with Pip
+          </h1>
+          <p style="font-size: 34px; color: #f5b963; font-weight: 600; margin-bottom: 28px;">
+            Your TV Has Someone In It.
+          </p>
+          <div style="display: flex; gap: 18px; flex-wrap: wrap; justify-content: center;">
+            <span class="hud-pill"><span class="dot"></span>Built with Amazon Bedrock Nova 2 Sonic &amp; Vega OS SDK</span>
+            <span class="hud-pill"><span class="dot green"></span>github.com/Garinmckayl/hearth</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TRACK 2: ELEVENLABS NARRATOR VOICEOVER CLIPS                          -->
+      <!-- ===================================================================== -->
+      <audio id="vo-act1" src="assets/narrator-act1.mp3" data-start="0.4" data-duration="14.94" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act2" src="assets/narrator-act2.mp3" data-start="24.4" data-duration="11.36" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act3" src="assets/narrator-act3.mp3" data-start="57.4" data-duration="11.36" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act4" src="assets/narrator-act4.mp3" data-start="79.4" data-duration="11.52" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act5a" src="assets/narrator-act5a.mp3" data-start="102.4" data-duration="11.88" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act5b" src="assets/narrator-act5b.mp3" data-start="125.8" data-duration="5.46" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act6" src="assets/narrator-act6.mp3" data-start="142.4" data-duration="15.12" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act7" src="assets/narrator-act7.mp3" data-start="159.3" data-duration="13.40" data-track-index="4" data-volume="1"></audio>
+      <audio id="vo-act8" src="assets/narrator-act8.mp3" data-start="173.2" data-duration="6.58" data-track-index="4" data-volume="1"></audio>
+
+      <!-- ===================================================================== -->
+      <!-- TRACK 3: LIVE 24 kHz AMAZON NOVA 2 SONIC PIP VOICE CLIPS              -->
+      <!-- ===================================================================== -->
+      <audio id="pip-sonic-1" src="assets/pip-welcome-sonic.wav" data-start="15.8" data-duration="7.44" data-track-index="5" data-volume="1"></audio>
+      <audio id="pip-sonic-2" src="assets/pip-memory-sonic.wav" data-start="36.2" data-duration="20.24" data-track-index="5" data-volume="1"></audio>
+      <audio id="pip-sonic-3" src="assets/pip-pick-sonic.wav" data-start="69.2" data-duration="8.28" data-track-index="5" data-volume="1"></audio>
+      <audio id="pip-sonic-4" src="assets/pip-dance-sonic.wav" data-start="91.5" data-duration="9.50" data-track-index="5" data-volume="1"></audio>
+      <audio id="pip-sonic-5a" src="assets/pip-pause-sonic.wav" data-start="114.8" data-duration="10.50" data-track-index="5" data-volume="1"></audio>
+      <audio id="pip-sonic-5b" src="assets/pip-cowatch-sonic.wav" data-start="131.6" data-duration="10.0" data-track-index="5" data-volume="1"></audio>
+
+      <!-- ===================================================================== -->
+      <!-- TRACK 4: SUBTLE WARM AMBIENT FIRESIDE BED                             -->
+      <!-- ===================================================================== -->
+      <audio id="fireside-bed" src="assets/fireside-bed.wav" data-start="0" data-duration="180" data-track-index="6" data-volume="0.06"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#act1-hook-card", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 0.2);
+      tl.fromTo("#act1-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 7.2);
+      tl.fromTo("#act1-sonic-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 15.7);
+
+      tl.fromTo("#act2-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 24.2);
+      tl.fromTo("#act2-sonic-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 36.1);
+
+      tl.fromTo("#act3-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 57.2);
+      tl.fromTo("#act3-tv-card", { x: -30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 66.3);
+      tl.fromTo("#act3-phone-card", { x: 30, opacity: 0 }, { x: 0, opacity: 1, duration: 0.55, ease: "power3.out" }, 66.5);
+      tl.fromTo("#act3-sonic-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 69.1);
+
+      tl.fromTo("#act4-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 79.2);
+      tl.fromTo("#act4-sonic-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 91.3);
+
+      tl.fromTo("#act5-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 102.2);
+      tl.fromTo("#act5-phone-overlay", { x: 32, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 112.2);
+      tl.fromTo("#act5-sonic-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power2.out" }, 114.7);
+
+      tl.fromTo("#act6-lower", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 142.2);
+      tl.fromTo("#arch-cards", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 159.3);
+      tl.fromTo("#act8-card", { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 173.2);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

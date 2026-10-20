@@ -43,10 +43,11 @@ let storyAudio;
 let speechRequest;
 let keepVoiceOnClose = false;
 let speechAllowed = false;
+let lastMoviePick = null;
 let configReady;
 const backendUrl = window.HearthNative?.backendUrl() || '';
 const movieNight = new MovieNight({ backendUrl, openPanel: (kicker, html) => openPanel(kicker, html, true), mount: document.querySelector('.world'), onForget: () => { history = []; stopLiveVoice(); }, onTurn: text => liveVoice ? liveVoice.submitText(text) : phonePairing?.userText(text) || false });
-const cinema = new Cinema({backendUrl, mount:document.querySelector('.world'), openPanel:(kicker,html)=>openPanel(kicker,html,true), onTurn:text=>liveVoice?.submitText(text) || phonePairing?.userText(text), onSpeak:text=>{speechAllowed=true;speak(text,{force:true});}, onPlayback:playback=>phonePairing?.playback(playback), onPair:()=>pairPhone('conversation',true), onTvControls:()=>movieNight.show(), onForget:()=>{history=[];stopLiveVoice();}, onClose:()=>element('cinema-button').focus(), onPrime:async (film,url)=>{
+const cinema = new Cinema({backendUrl, mount:document.querySelector('.world'), openPanel:(kicker,html)=>openPanel(kicker,html,true), onTurn:text=>liveVoice?.submitText(text) || phonePairing?.userText(text), onSpeak:text=>{speechAllowed=true;speak(text,{force:true});}, onPick:pick=>{lastMoviePick=pick;phonePairing?.moviePick(pick);}, onPlayback:playback=>phonePairing?.playback(playback), onPair:()=>pairPhone('conversation',true), onTvControls:()=>movieNight.show(), onForget:()=>{history=[];stopLiveVoice();}, onClose:()=>element('cinema-button').focus(), onPrime:async (film,url)=>{
   if (window.HearthNative?.tvControl) return window.HearthNative.tvControl(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
   if (movieNight.token) return movieNight.request(film.id === 'prime' ? {action:'prime'} : {action:'prime-search',text:film.title});
   window.open(url,'_blank','noopener');
@@ -589,6 +590,7 @@ async function pairPhone(mode = 'conversation', coWatch = true) {
     const room = await pairing.host({ mode, cowatch:coWatch, name: state.name, day: state.day, voice: state.voice, viewer: viewerContext(), memories: state.remember ? state.memories : [], recentConversation: history, world: { garden: state.garden, atmosphere: state.atmosphere, vibe: state.vibe, window: state.window, storyPath: state.storyPath } });
     if (!room || phonePairing !== pairing) return;
     if (coWatch && movieNight.token && !movieNight.nativeControl) pairing.send({type:'delegate-tv',token:movieNight.token});
+    if (lastMoviePick) setTimeout(() => pairing.moviePick(lastMoviePick), 250);
     if (coWatch) {element('panel-kicker').textContent = 'YOUR MOVIE COMPANION'; document.querySelector('#panel-content .privacy-note').textContent = 'Pip’s voice plays on your phone so the conversation can continue when the TV changes apps. Keep the phone page open. Starting its microphone sends speech to the configured voice services. TV controls require an active Hearth player or an authorized remote bridge.';}
     element('pair-link').innerHTML = `<img width="220" height="220" src="${escapeHtml(room.qr)}" alt="Scan to connect your phone"><p><a href="${escapeHtml(room.joinUrl)}" target="_blank" rel="noopener">Open phone microphone</a></p>`;
     element('pair-status').textContent = 'Waiting for your phone…';
@@ -615,6 +617,38 @@ function joinPhone(token) {
     const discover=document.createElement('button');discover.id='phone-discover';discover.className='subtle-button';discover.textContent='Discover TV media apps';discover.onclick=async()=>{const reply=await pairing.requestControl({action:'providers'});element('phone-control-result').textContent=reply.summary+(reply.endpoints?.length ? ' '+reply.endpoints.map(e=>e.packageId).join(', ') : '');};element('phone-watch').append(discover);
   };
   pairing.onHostState = active => {if (element('phone-tv-state')) element('phone-tv-state').textContent=active ? 'TV companion connected. Pip’s audio stays on this phone.' : 'TV companion is in the background. Pip stays with you on this phone.';};
+  pairing.onMoviePick = pick => {
+    if (!element('phone-watch')) return;
+    element('phone-watch').hidden = false;
+    let card = element('phone-pick-card');
+    if (!card) {
+      card = document.createElement('article');
+      card.id = 'phone-pick-card';
+      card.style.cssText = 'margin:10px 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(245,185,99,0.5);background:rgba(245,185,99,0.1);';
+      element('phone-watch').prepend(card);
+    }
+    const films = (pick.picks || []).map(filmById).filter(Boolean);
+    const primary = films[0];
+    card.innerHTML = `<small style="color:#f5b963;font-weight:700;letter-spacing:0.08em">PIP’S PICK SENT TO YOUR PHONE</small><h4 style="margin:4px 0">${escapeHtml(primary ? primary.title : 'Tonight’s recommendation')}</h4><p style="margin:4px 0 8px;font-size:14px">${escapeHtml(pick.text || '')}</p><div class="panel-actions" id="phone-pick-actions"></div>`;
+    const actions = card.querySelector('#phone-pick-actions');
+    for (const film of films.slice(0, 2)) {
+      if (film.src) {
+        const btn = document.createElement('button');
+        btn.className = 'primary-button';
+        btn.textContent = `Watch ${film.title} on TV`;
+        btn.onclick = async () => { const reply = await pairing.requestControl({ action: 'title', id: film.id }); element('phone-control-result').textContent = reply.summary; };
+        actions.append(btn);
+      } else {
+        const link = document.createElement('a');
+        link.className = 'subtle-button';
+        link.href = `https://www.amazon.com/s?k=${encodeURIComponent(film.title)}&i=instant-video`;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = `Open ${film.title} on Prime`;
+        actions.append(link);
+      }
+    }
+  };
   pairing.onPlayback = playback => { if (element('phone-playback')) element('phone-playback').textContent = playback ? `${playback.title} · ${playback.status} · ${Math.floor(playback.positionSeconds / 60)}:${String(playback.positionSeconds % 60).padStart(2,'0')}` : 'No current player telemetry. Prime progress is available only if its provider reports it.'; };
   for (const action of ['pause','play','return']) element(`phone-${action}`).onclick = async () => { const result = await pairing.requestControl({action}); element('phone-control-result').textContent = result.summary; };
   element('phone-text-form').onsubmit = event => { event.preventDefault(); const input = element('phone-text'); pairing.voice?.submitText(input.value); input.value = ''; };

@@ -3,8 +3,8 @@ import { FILMS, filmById, rankFilms, primeSearch } from './film-catalog.js';
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clock = seconds => `${Math.floor((seconds || 0) / 60)}:${String(Math.floor((seconds || 0) % 60)).padStart(2, '0')}`;
 export class Cinema {
-  constructor({ openPanel, mount, backendUrl = '', onTurn = () => {}, onSpeak = () => {}, onPlayback = () => {}, onPrime = () => {}, onPair = () => {}, onTvControls = () => {}, onForget = () => {}, onClose = () => {} }) {
-    Object.assign(this, { openPanel, mount, backendUrl, onTurn, onSpeak, onPlayback, onPrime, onPair, onTvControls, onForget, onClose });
+  constructor({ openPanel, mount, backendUrl = '', onTurn = () => {}, onSpeak = () => {}, onPick = () => {}, onPlayback = () => {}, onPrime = () => {}, onPair = () => {}, onTvControls = () => {}, onForget = () => {}, onClose = () => {} }) {
+    Object.assign(this, { openPanel, mount, backendUrl, onTurn, onSpeak, onPick, onPlayback, onPrime, onPair, onTvControls, onForget, onClose });
     try { this.profile = JSON.parse(localStorage.getItem('hearth.cinema.v1') || '{}'); } catch { this.profile = {}; }
     this.profile.preferences = typeof this.profile.preferences === 'string' ? this.profile.preferences.slice(0, 500) : '';
     this.profile.history = Array.isArray(this.profile.history) ? this.profile.history.slice(-30) : [];
@@ -25,6 +25,7 @@ export class Cinema {
       if (status) status.textContent = reply.text;
       this.caption(reply.text);
       if (recommendations) this.renderShelf(recommendations, reply.picks.map(filmById).filter(Boolean));
+      this.onPick?.(reply);
       this.onSpeak?.(reply.text);
       return reply;
     } catch {
@@ -34,12 +35,22 @@ export class Cinema {
       if (status) status.textContent = message;
       if (recommendations) this.renderShelf(recommendations, picks);
       this.caption(message);
-      return {text:message, picks:picks.slice(0,3).map(f=>f.id), source:'local-shelf'};
+      const fallback = {text:message, picks:picks.slice(0,3).map(f=>f.id), source:'local-shelf'};
+      this.onPick?.(fallback);
+      return fallback;
     }
   }
   show() {
     this.openPanel('MOVIE NIGHT WITH PIP', `<div class="cinema-intro"><p class="eyebrow">YOUR TASTE. HER OPINIONS.</p><h2>What are we watching tonight?</h2><p>A little comedy, a proper adventure, or something completely your own.</p></div><form id="cinema-find"><label class="field">What are you in the mood for?<input id="cinema-mood" maxlength="500" placeholder="Something funny, short, and not too dark" value="${escape(this.profile.preferences)}"></label><div class="panel-actions"><button class="primary-button" type="submit">Pip, choose with me</button><button class="subtle-button" type="button" id="cinema-save">Remember my taste</button></div></form><p id="cinema-advice" role="status">Two open-film choices play here. Prime choices open a search; access depends on your account and region.</p><div id="cinema-shelf" class="cinema-shelf"></div><div class="panel-actions"><button class="subtle-button" id="cinema-phone">Keep Pip with me on my phone</button><button class="subtle-button" id="cinema-forget">Forget my movie memories</button></div><label class="setting-row"><input type="checkbox" id="cinema-remember" ${this.profile.rememberProgress ? 'checked' : ''}> Remember my playback position and completed films on this device</label><p class="privacy-note">Open films: Blender Foundation, CC BY 3.0. Prime search choices are suggestions, not verified included titles. Keep the phone page open for companion audio while another TV app is playing.</p>`);
     const shelf = document.getElementById('cinema-shelf');
+    if (this.profile.history.length) {
+      const remembered = document.createElement('p');
+      remembered.id = 'cinema-history';
+      remembered.className = 'privacy-note';
+      remembered.style.color = '#f5b963';
+      remembered.textContent = `Pip remembers your past nights: ${this.profile.history.slice(-3).map(h => `${h.title} (${h.completed ? 'completed' : `at ${clock(h.positionSeconds)}`})`).join(' · ')}`;
+      shelf.before(remembered);
+    }
     this.renderShelf(shelf, rankFilms(this.profile.preferences, {history:this.profile.history}));
     document.getElementById('cinema-find').onsubmit = event => { event.preventDefault(); this.ask(document.getElementById('cinema-mood').value || 'Pick something for tonight.', {status:document.getElementById('cinema-advice'), recommendations:shelf}); };
     document.getElementById('cinema-save').onclick = () => { this.profile.preferences = document.getElementById('cinema-mood').value.trim(); this.persist(); document.getElementById('cinema-advice').textContent = 'Your movie taste is saved on this device.'; this.onTurn(`I explicitly saved my movie preferences: ${this.profile.preferences}`); };

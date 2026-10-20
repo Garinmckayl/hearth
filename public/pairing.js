@@ -18,6 +18,7 @@ export class PhonePairing {
         if (data.type === 'context') { this.context = data.context; this.coWatch = data.context.cowatch === true; this.hostActive = data.hostActive !== false; this.onContext?.(this.context); this.status('Connected to your television. Choose Start microphone.'); }
         if (data.type === 'host-state') { this.hostActive = data.active; this.onHostState?.(data.active); this.status(data.active ? 'Your TV is back with Pip.' : 'Pip stays with you on this phone. TV app controls may be unavailable.'); }
         if (data.type === 'playback') { this.latestPlayback = data.playback; if (this.context?.viewer) this.context.viewer.playback = data.playback; if (this.voice?.context?.viewer) this.voice.context.viewer.playback = data.playback; this.onPlayback?.(data.playback); }
+        if (data.type === 'movie-pick') { this.latestPick = data; this.onMoviePick?.(data); }
         if (data.type === 'control-request' && this.isHost) { const result = await this.control(data.command); this.send({type:'control-result',id:data.id,result}); }
         if (data.type === 'control-result') { const pending = this.pendingControls.get(data.id); if (pending) { clearTimeout(pending.timer); this.pendingControls.delete(data.id); pending.resolve(data.result); } }
         if (data.type === 'phone-connected') this.status('Phone connected. Start its microphone when you’re ready.');
@@ -66,6 +67,7 @@ export class PhonePairing {
   }
   userText(text) { if (this.closed || this.socket?.readyState !== 1) return false; this.send({ type: 'user-text', text }); return true; }
   playback(playback) { if (this.isHost && this.coWatch) this.send({type:'playback',playback}); }
+  moviePick(pick) { if (this.isHost && pick) this.send({type:'movie-pick',picks:pick.picks||[],text:pick.text||''}); }
   suspend() { if (this.isHost && this.coWatch) this.send({type:'host-state',active:false}); }
   resume() { if (this.isHost && this.coWatch) this.send({type:'host-state',active:true}); }
   requestControl(command) {
