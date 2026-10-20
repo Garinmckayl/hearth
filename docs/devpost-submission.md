@@ -1,7 +1,10 @@
-# Hearth — Your TV Has Someone In It
+# Hearth: Movie Night with Pip — Your TV Has Someone In It
 
+> **One-Line Naming Key for Judges:**  
+> **Hearth** is the cozy Fire TV living room & cinema app (`com.hearth.tv.main`); **Pip** is the AI woodland companion who lives inside it.
+>
 > **Tagline / Elevator Pitch:**  
-> What if your television had someone living inside it? Meet **Pip**—a warm, witty woodland companion built for Fire TV & Vega OS who remembers your movie taste, picks tonight’s film aloud with **Amazon Nova 2 Sonic**, controls playback when you speak into your phone, and keeps you company while you watch.
+> What if your television had someone living inside it? **Hearth** turns your Fire TV into a warm shared home with **Pip**—a witty AI companion who remembers your movie taste, picks tonight’s film aloud with **Amazon Nova 2 Sonic**, controls playback when you speak into your phone, and keeps you company while you watch.
 
 - **Primary Track:** Fire TV Track (Vega OS & Fire OS)
 - **Mini Challenge:** AWS Builder Challenge (Amazon Bedrock Nova 2 Sonic, Amazon Bedrock Nova 2 Lite, Amazon Transcribe Streaming, AWS EC2 Mac + SSM)
