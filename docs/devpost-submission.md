@@ -212,3 +212,16 @@ During an early family playtest, the builder’s grandmother spent three hours t
   - *Task:* Launch macOS Sequoia on a Dedicated Host and wait for `amazon-ssm-agent` registration.
   - *Actual:* Lowering the root `gp3` volume below the AMI’s baseline `5000 IOPS / 500 MiB/s` or interrupting first-boot APFS container resize with an early `RebootInstances` / `ReplaceRootVolume` stalls initialization (`StatusCheckFailed_System = 1`, `NetworkIn = 0`), requiring instance termination and a ~70-minute Dedicated Host scrub before reuse.
   - *Workaround:* Enforce `gp3` `5000 IOPS / 500 MiB/s` unencrypted root volumes in launch templates with no blocking `UserData` and allow first boot to complete uninterrupted.
+
+---
+
+## Devpost Thumbnail & Image Gallery Guide
+
+- **Submission Thumbnail (`1200×800`, 3:2):** `artifacts/devpost-thumbnail-1200x800.png` (or `.jpg`)
+- **Gallery Image 1 (`artifacts/devpost-gallery-01-movie-shelf.png`):** *Movie Night with Pip — Pip listens to tonight’s mood, speaks her recommendation aloud in 24 kHz Amazon Nova 2 Sonic voice, and narrows the shelf to Big Buck Bunny (Open Film) and Paddington (Prime Video handoff).*
+- **Gallery Image 2 (`artifacts/devpost-gallery-02-cinema-player.png`):** *Hearth Cinema Player — Watching Big Buck Bunny together after a spoken phone request triggered `tv-pause` and verified the TV player’s `PAUSED` state.*
+- **Gallery Image 3 (`artifacts/devpost-gallery-03-vega-simulator-cozy.png`):** *Official ARM64 Vega OS Simulator (`hearth-vega-aarch64.vpkg`) — Hearth running at 1920×1080 in Cozy mode with 10-foot D-pad focus and persistent memory.*
+- **Gallery Image 4 (`artifacts/devpost-gallery-04-vega-simulator-cold.png`):** *Official ARM64 Vega OS Simulator — Cold/Atmospheric mode transition via remote D-pad and `kpenter` selection.*
+- **Gallery Image 5 (`artifacts/devpost-gallery-05-nova-sonic-dance.png`):** *Live Amazon Nova 2 Sonic Speech-to-Speech & Tool Use — Pip dances by the fire after invoking `perform_world_action(action="dance")` and receiving TV acknowledgment.*
+- **Gallery Image 6 (`artifacts/devpost-gallery-06-phone-cowatch.png`):** *Second-Screen Co-Watch & Spoken TV Control — 1080p TV Cinema Player paired via QR code with the live Phone Co-Watch Remote & 16 kHz microphone.*
+
