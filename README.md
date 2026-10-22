@@ -6,17 +6,18 @@ Meet Pip: a playful AI entertainment companion with a home inside your televisio
 
 Choose **Movie night with Pip**. Pip recommends from a supplied catalog using your taste, starts an actual open film after your selection, and responds to spoken play/pause requests with measured player acknowledgments. The paired phone keeps Pip's voice connected when the TV changes apps. Progress memory is optional. Prime suggestions open confirmed searches; actual Prime playback remains a device acceptance check. See [movie-night implementation and evidence](docs/movie-night.md) and [external TV setup](docs/tv-control.md).
 
-## Review checkpoint — October 17, 2026
+## Live Showcase, Permanent Downloads & Devpost Submission (October 22, 2026)
 
-A real-provider browser check passed: Bedrock recommendation → film playback → synthetic phone speech → live Nova Sonic movie pause → actual player acknowledgment → phone resume → fresh voice output after the TV background lifecycle → disconnect. Together with the verified official ARM64 Vega OS simulator captures and live Nova 2 Sonic fireside dance, the complete 98-second 1080p demo showcase is packaged in `artifacts/hearth-demo-showcase.mp4` and hosted at the showcase link below:
+- **Devpost Submission:** https://devpost.com/software/hearth-9vjrhp
+- **Live 10-Foot Fire TV Home (`?tv=1`):** https://donor-boot-restaurant-taught.trycloudflare.com/?tv=1
+- **Live Movie Night with Pip & QR Phone Pairing (`?movies=1`):** https://donor-boot-restaurant-taught.trycloudflare.com/?movies=1
+- **Video & Asset Showcase Portal:** https://jean-expo-belkin-favorite.trycloudflare.com/
+- **3-Minute Master Demo Video (1080p MP4 — Permanent GitHub Release):** https://github.com/Garinmckayl/hearth/releases/download/v1.0.0/hearth-3min-master-demo.mp4
+- **75-Second Uncut Live Nova 2 Sonic Reel (1080p MP4 — Permanent GitHub Release):** https://github.com/Garinmckayl/hearth/releases/download/v1.0.0/hearth-demo-showcase.mp4
+- **Official ARM64 Vega OS Package (`hearth-vega-aarch64.vpkg` — Permanent GitHub Release):** https://github.com/Garinmckayl/hearth/releases/download/v1.0.0/hearth-vega-aarch64.vpkg
+- **Developer Friction Log (+10% Bonus):** [FRICTION_LOG.md](FRICTION_LOG.md)
 
-- **Full 98s Demo Showcase & Narrative Page:** https://synthetic-searched-strength-displaying.trycloudflare.com
-- **Complete 98s Demo Video (1080p MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-demo-showcase.mp4
-- **Official ARM64 Vega Simulator Clip (MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-official-vega-simulator.mp4
-- **Movie-Night Co-Watch Clip (MP4):** https://synthetic-searched-strength-displaying.trycloudflare.com/hearth-movie-night.mp4
-- **Live TV Home & Movie Shelf:** https://order-mods-utility-velocity.trycloudflare.com/?movies=1
-
-The previous AWS simulator host is released. The newly authorized M1 host remains pending, with bounded termination/release schedules. Its worker now tests native movie playback, spoken pause, and media endpoint discovery when available. No additional host was allocated. Historical official simulator rendering evidence is in [docs/official-simulator.md](docs/official-simulator.md).
+All 101 automated checks pass (47 Node.js backend/protocol/security tests, 16 Vega native wrapper Jest tests, and 38 Playwright 1080p browser & cinema tests), and official ARM64 Vega Virtual Device evidence is documented in [docs/official-simulator.md](docs/official-simulator.md). All AWS EC2 Mac Dedicated Hosts used during simulator verification have been terminated and released (`0` active hosts).
 
 ## Open the home
 
